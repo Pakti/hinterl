@@ -193,3 +193,21 @@ spec_full_range_test() ->
     ?assertEqual(#{<<"start">> => #{<<"line">> => 0, <<"character">> => 0},
                    <<"end">> => #{<<"line">> => 1, <<"character">> => 29}},
                  maps:get(<<"range">>, S)).
+
+unused_macro_definitions_test() ->
+    R = a("-module(otp).\n-include(\"graphql_client.hrl\").\n-export([to_json/1, local_server_url/0, make_default_client/0, print_json/1]).\n-define(DEFAULT_CONNECT_TIMEOUT_MSECS, 5_000).\n-define(DEFAULT_RECV_TIMEOUT_MSECS, 5_000).\n-spec local_server_url() -> binary().\nlocal_server_url() ->\n    <<\"http://localhost:8080/otp/gtfs/v1\">>."),
+    [F] = maps:get(<<"functions">>, R),
+    [C] = clauses(F),
+    ?assertEqual(<<"binary()">>, maps:get(<<"return">>, alt(C))),
+    ?assertEqual(#{<<"line">> => 6, <<"character">> => 0},
+                 maps:get(<<"start">>, maps:get(<<"name_range">>, C))).
+
+macro_token_bodies_test() ->
+    [F] = functions("-define(CALL(X), begin ?OTHER(X), #{key => {X, <<1,2>>}} end).\n-define(READ(P), P#person.age).\n-spec f() -> ok. f() -> ok."),
+    ?assertEqual(<<"ok">>, maps:get(<<"return">>, alt(hd(clauses(F))))).
+
+incomplete_or_used_macros_test_() ->
+    [?_assertEqual(<<"invalid">>, maps:get(<<"status">>, hinterl_backend:analyze(Source)))
+     || Source <- [<<"-define(A, 1)">>, <<"-define(A, f(1). f() -> ok.">>,
+                   <<"-define(A, 1). f() -> ?A.">>,
+                   <<"-ifdef(TEST). -define(A, 1). -endif. f() -> ok.">>]].

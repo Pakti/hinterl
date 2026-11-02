@@ -64,11 +64,32 @@ conditional([{'-', _}, {atom, _, Name} | _]) ->
 conditional(_) -> false.
 
 parse_forms([], Acc) -> {ok, lists:reverse(Acc)};
+parse_forms([[{'-', _}, {atom, _, define}, {'(', _} | _] = Tokens | Rest], Acc) ->
+    %% Macro bodies are preprocessor token sequences, not Erlang forms. Ignore
+    %% complete definitions without expanding them or changing source positions.
+    case complete_define(lists:nthtail(2, Tokens), []) of
+        true -> parse_forms(Rest, Acc);
+        false -> error
+    end;
 parse_forms([Tokens | Rest], Acc) ->
     case erl_parse:parse_form(Tokens) of
         {ok, Form} -> parse_forms(Rest, [{Form, Tokens} | Acc]);
         _ -> error
     end.
+
+complete_define([{dot, _}], []) -> true;
+complete_define([T | Rest], Stack) ->
+    case element(1, T) of
+        '(' -> complete_define(Rest, [')' | Stack]);
+        '[' -> complete_define(Rest, [']' | Stack]);
+        '{' -> complete_define(Rest, ['}' | Stack]);
+        '<<' -> complete_define(Rest, ['>>' | Stack]);
+        K when K =:= ')'; K =:= ']'; K =:= '}'; K =:= '>>' ->
+            case Stack of [K | Tail] -> complete_define(Rest, Tail); _ -> false end;
+        dot -> false;
+        _ -> complete_define(Rest, Stack)
+    end;
+complete_define([], _) -> false.
 
 result(Parsed) ->
     Specs = [spec(S, Ts) || {S = {attribute, _, spec, _}, Ts} <- Parsed],

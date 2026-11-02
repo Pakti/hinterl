@@ -268,3 +268,10 @@
           (should hinterl--overlays)
           (hinterl-mode -1)
           (should-not hinterl--overlays))))))
+
+(ert-deftest hinterl-unused-macros-keep-inlay-hints ()
+  (hinterl-test--buffer "-module(otp).\n-include(\"graphql_client.hrl\").\n-define(DEFAULT_CONNECT_TIMEOUT_MSECS, 5_000).\n-define(DEFAULT_RECV_TIMEOUT_MSECS, 5_000).\n-spec local_server_url() -> binary().\nlocal_server_url() -> <<\"http://localhost:8080/otp/gtfs/v1\">>."
+    (should (equal hinterl--status "ok"))
+    (should (= 1 (length (hinterl-test--hints))))
+    (should (equal " :: binary()" (substring-no-properties
+                                  (overlay-get (car (hinterl-test--hints)) 'after-string))))))

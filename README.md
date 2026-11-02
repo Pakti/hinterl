@@ -167,6 +167,9 @@ branches are not selected. The initial conservative policy is:
 
 - An incomplete form, scan/parse error, or unresolved macro syntax clears all
   decorations for the buffer. A subsequent successful parse restores them.
+- Complete `-define` forms are skipped without macro expansion, so unused macro
+  definitions do not prevent hints elsewhere. Unresolved macro usages and
+  incomplete definitions still clear decorations.
 - Conditional compilation clears all decorations, even if both branches parse.
 - An include keeps locally parsed type hints; included files are not analyzed.
 - Module-qualified spec declarations are returned as data, but are not guessed

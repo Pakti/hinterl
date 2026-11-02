@@ -187,3 +187,9 @@ with an exclusive end and no trailing newline. It covers all alternatives and
 constraints across multiple lines. Clients may use this for optional visual
 dimming. Emacs uses `hinterl-spec-face` when `hinterl-dim-specs` is enabled; this
 never alters the source or hides the spec.
+
+Complete `-define` forms are ignored as preprocessor token sequences rather than
+passed to `erl_parse`. This permits hints in otherwise parseable buffers with
+unused object-like or function-like macros. Definitions are not expanded or
+validated semantically. Incomplete/unbalanced definitions, unresolved macro usages
+in other forms, and conditional compilation still invalidate buffer analysis.
