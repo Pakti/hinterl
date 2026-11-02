@@ -36,12 +36,12 @@ analyze(Source) when is_binary(Source) ->
 
 invalid(Message) ->
     #{<<"status">> => <<"invalid">>, <<"message">> => Message,
-      <<"functions">> => [], <<"exports">> => [], <<"specs">> => []}.
+      <<"functions">> => [], <<"specs">> => []}.
 
 analyze_tokens(Tokens) ->
     Forms = split_forms(Tokens, [], []),
     %% Preprocessor conditionals cannot be evaluated from a buffer. In particular,
-    %% do not merge mutually exclusive specs/functions or export declarations.
+    %% do not merge mutually exclusive specs/functions.
     case lists:any(fun conditional/1, Forms) of
         true -> invalid(<<"Conditional compilation is unresolved; decorations cleared">>);
         false ->
@@ -71,24 +71,11 @@ parse_forms([Tokens | Rest], Acc) ->
     end.
 
 result(Parsed) ->
-    Includes = lists:any(fun({{attribute, _, N, _}, _}) ->
-                                N =:= include orelse N =:= include_lib;
-                           (_) -> false end, Parsed),
-    Exports0 = lists:append([Es || {{attribute, _, export, Es}, _} <- Parsed]),
-    ExportAll = lists:any(fun({{attribute, _, compile, Options}, _}) ->
-                                  Options =:= export_all orelse
-                                  (is_list(Options) andalso lists:member(export_all, Options));
-                             (_) -> false end, Parsed),
     Specs = [spec(S, Ts) || {S = {attribute, _, spec, _}, Ts} <- Parsed],
-    Exports = lists:usort(Exports0),
-    CertainExports = case Includes of true -> []; false -> Exports end,
-    Functions = [function(F, Ts, Specs, CertainExports, ExportAll andalso not Includes)
+    Functions = [function(F, Ts, Specs)
                  || {F = {function, _, _, _, _}, Ts} <- Parsed],
     #{<<"status">> => <<"ok">>, <<"functions">> => Functions,
-      <<"specs">> => Specs,
-      <<"exports">> => [identity(N, A) || {N, A} <- Exports],
-      <<"export_all">> => ExportAll,
-      <<"exports_certain">> => not Includes}.
+      <<"specs">> => Specs}.
 
 identity(Name, Arity) -> #{<<"name">> => atom_to_binary(Name), <<"arity">> => Arity}.
 
@@ -119,7 +106,7 @@ type_text(Type) ->
 constraint_text({type, _, constraint, [{atom, _, is_subtype}, [Var, Type]]}) ->
     <<(type_text(Var))/binary, " :: ", (type_text(Type))/binary>>.
 
-function({function, _, Name, Arity, Clauses}, Tokens, Specs, Exports, ExportAll) ->
+function({function, _, Name, Arity, Clauses}, Tokens, Specs) ->
     Matching = [S || S = #{<<"name">> := N, <<"arity">> := A} <- Specs,
                      N =:= atom_to_binary(Name), A =:= Arity, not maps:is_key(<<"module">>, S)],
     Alternatives = case Matching of
@@ -132,8 +119,7 @@ function({function, _, Name, Arity, Clauses}, Tokens, Specs, Exports, ExportAll)
         Count when Count > 0 -> <<"positional">>;
         _ -> <<"suppressed">>
     end,
-    (identity(Name, Arity))#{<<"exported">> => ExportAll orelse lists:member({Name, Arity}, Exports),
-      <<"mapping">> => Mapping,
+    (identity(Name, Arity))#{<<"mapping">> => Mapping,
       <<"clauses">> => [clause(C, Next, Tokens, mapped(I, Mapping, Alternatives))
                          || {C, Next, I} <- lists:zip3(Clauses, tl(Clauses) ++ [last],
                                                        lists:seq(1, Count))]}.

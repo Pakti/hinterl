@@ -9,7 +9,7 @@ EOF shuts down the process. Clients must buffer partial lines and handle multipl
 lines in one read. Stderr is diagnostic output and must not be parsed as JSON.
 
 Requests are independent full-buffer snapshots. No file access, editor identity,
-project root, or Angler process is required. V1 supports only `analyze`; it is not
+or project root is required. V1 supports only `analyze`; it is not
 JSON-RPC or LSP. Unknown fields may be ignored; new incompatible behavior requires
 a new protocol version. Never evaluate returned display text as editor code.
 
@@ -40,9 +40,6 @@ The request above produces this shape (whitespace shown for readability):
   "id": 7,
   "version": 42,
   "status": "ok",
-  "exports": [{"name": "f", "arity": 1}],
-  "export_all": false,
-  "exports_certain": true,
   "specs": [{
     "name": "f", "arity": 1,
     "location": {"line": 1, "character": 1},
@@ -50,7 +47,7 @@ The request above produces this shape (whitespace shown for readability):
     "alternatives": [{"arguments": ["integer()"], "return": "atom()", "constraints": []}]
   }],
   "functions": [{
-    "name": "f", "arity": 1, "exported": true, "mapping": "shared",
+    "name": "f", "arity": 1, "mapping": "shared",
     "clauses": [{
       "range": {"start": {"line": 2, "character": 0}, "end": {"line": 2, "character": 10}},
       "name_range": {"start": {"line": 2, "character": 0}, "end": {"line": 2, "character": 1}},
@@ -68,14 +65,9 @@ The request above produces this shape (whitespace shown for readability):
   its name through its final body token, excluding the separating semicolon/dot.
   Argument ranges cover full patterns, including nested structures. `head_end`
   is immediately after `)`, before any guard. For zero arity, `arguments` is empty.
-- `exports` lists explicit declarations, deduplicated. `export_all` reports a
-  literal compile option, including its list form. With an include present,
-  `exports_certain` is false and all `exported` flags are false: clients must not
-  treat the partial explicit declaration list as a complete preprocessing result.
 - `mapping` is `shared`, `positional`, or `suppressed`. A clause's `alternative`
   is either its selected signature or `null`. It is `null` with no spec, ambiguous
-  duplicate specs, or a count mismatch. Export highlighting is independent of
-  signature mapping.
+  duplicate specs, or a count mismatch.
 - Each signature has argument display strings, a return display string, and a
   list of constraint strings such as `A :: integer()`. Variables stay named;
   types are rendered by `erl_pp`, possibly with line breaks. Clients may flatten
@@ -111,7 +103,7 @@ protocol character and two UTF-16 units. Line feeds start a new line.
 
 A valid `analyze` request with incomplete or unsupported buffer syntax returns the
 same `protocol`, `id`, and `version`, `status: "invalid"`, a human-readable
-`message`, and empty `functions`, `specs`, and `exports` arrays. Conditional
+`message`, and empty `functions` and `specs` arrays. Conditional
 compilation is also invalid for buffer-only analysis. Discard all decorations for
 that version. Do not use the last successful result. New successful snapshots
 recover without restarting the backend.

@@ -1,8 +1,8 @@
 # Hinterl
 
 Spec-derived inlay hints for ordinary Erlang, starting with Emacs on Linux.
-Hinterl is independent of Angler. It displays decorations without inserting
-annotations into source, changing saved files, or hiding specs.
+It displays decorations without inserting annotations into source, changing saved
+files, or hiding specs.
 
 ```erlang
 -spec birthday(#person{}) -> #person{}.
@@ -16,9 +16,8 @@ With Hinterl enabled, the clause head appears as:
 birthday(P :: #person{}) :: #person{} ->
 ```
 
-The types use `hinterl-type-face`; exported function names use the dedicated
-`erlang-exported-function-face` on every clause head, matched by name **and arity**.
-Both explicit `-export` attributes and `-compile(export_all)` are supported.
+The types use `hinterl-type-face`. Function-name highlighting is handled by
+ordinary `erlang-mode`.
 
 ## Linux setup
 
@@ -78,7 +77,7 @@ Hinterl does **no inference or semantic clause/signature matching**:
 
 1. A single signature supplies types to every implementation clause.
 2. Multiple alternatives map to clauses in source order only when counts match.
-3. Otherwise type hints are suppressed; the spec and export highlighting remain.
+3. Otherwise type hints are suppressed; the spec remains visible.
 
 For example, alternative 1 may not semantically describe clause 1. Hint hover text
 makes this convention explicit. Type variables, nested types, fun types, and
@@ -92,7 +91,7 @@ Each enabled buffer owns one persistent Erlang process. Emacs sends the whole
 **unsaved buffer**, including when narrowed, over UTF-8 JSON lines on stdio.
 The backend uses `erl_scan` and `erl_parse`; there is no Erlang parser in Lisp.
 It returns function identities, clause/argument ranges, spec alternatives, type
-text, and explicit exports. Emacs owns overlays, faces, scheduling, and navigation.
+text. Emacs owns overlays, faces, scheduling, and navigation.
 See [the editor-independent protocol](docs/protocol.md) for a future VS Code client.
 
 Every edit immediately removes old overlays, then schedules idle analysis. Replies
@@ -108,9 +107,7 @@ branches are not selected. The initial conservative policy is:
 - An incomplete form, scan/parse error, or unresolved macro syntax clears all
   decorations for the buffer. A subsequent successful parse restores them.
 - Conditional compilation clears all decorations, even if both branches parse.
-- An include keeps locally parsed type hints, but suppresses export highlighting
-  because the included file could change export behavior. Explicit declarations
-  are still returned as data, with export certainty marked false.
+- An include keeps locally parsed type hints; included files are not analyzed.
 - Module-qualified spec declarations are returned as data, but are not guessed
   to describe local functions.
 
@@ -121,9 +118,8 @@ index, compiler type checking, or semantic guarantee beyond Erlang buffer parsin
 ## Development
 
 `make test` runs EUnit and real Emacs/backend integration tests. Coverage includes
-nested/fun/record types, variables and constraints, overload mapping, every exported
-clause, quoted names, arity distinctions, `export_all`, nested head ranges, Unicode
-and tabs, unsaved changes, incomplete syntax, stale responses, fragmented protocol
+nested/fun/record types, variables and constraints, overload mapping, multiple
+clauses, quoted names, arity distinctions, nested head ranges, Unicode and tabs, unsaved changes, incomplete syntax, stale responses, fragmented protocol
 frames, multiple buffers, and process cleanup.
 
 The backend is `src/hinterl_backend.erl`; presentation is `emacs/hinterl.el`.

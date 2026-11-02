@@ -24,11 +24,6 @@
 
 (defun hinterl-test--hints ()
   (cl-remove-if-not (lambda (o) (overlay-get o 'after-string)) hinterl--overlays))
-(defun hinterl-test--exports ()
-  (cl-remove-if-not
-   (lambda (o) (eq (overlay-get o 'face) 'erlang-exported-function-face))
-   hinterl--overlays))
-
 (ert-deftest hinterl-unsaved-overlays-and-hover ()
   (let ((source "-spec birthday(#person{}) -> #person{}.\nbirthday(P) -> P#person{}.\n"))
     (hinterl-test--buffer source
@@ -45,24 +40,15 @@
       (hinterl-jump-to-spec)
       (should (= 2 (point))))))
 
-(ert-deftest hinterl-export-name-arity-every-clause ()
-  (hinterl-test--buffer
-      "-export(['a b'/1, f/0]).\n'a b'(X) -> X; 'a b'(Y) -> Y.\nf() -> ok.\nf(X) -> X."
-    (should (= 3 (length (hinterl-test--exports))))
-    (should (equal '("'a b'" "'a b'" "f")
-                   (sort (mapcar (lambda (o) (buffer-substring-no-properties
-                                             (overlay-start o) (overlay-end o)))
-                                 (hinterl-test--exports)) #'string-lessp)))))
-
-(ert-deftest hinterl-export-all ()
-  (hinterl-test--buffer "-compile([export_all]). f() -> ok. f(X) -> X; f(Y) -> Y."
-    (should (= 3 (length (hinterl-test--exports))))))
+(ert-deftest hinterl-leaves-export-highlighting-to-erlang-mode ()
+  (hinterl-test--buffer "-compile(export_all). -export([f/1]). f(X) -> X; f(Y) -> Y."
+    (should (equal hinterl--status "ok"))
+    (should-not hinterl--overlays)))
 
 (ert-deftest hinterl-overload-mismatch-keeps-spec ()
   (let ((source "-export([f/1]). -spec f(integer()) -> atom(); (atom()) -> integer().\nf(X) -> X."))
     (hinterl-test--buffer source
       (should (= 0 (length (hinterl-test--hints))))
-      (should (= 1 (length (hinterl-test--exports))))
       (should (equal source (buffer-string))))))
 
 (ert-deftest hinterl-incomplete-clears-and-recovers ()
@@ -141,7 +127,6 @@
   (hinterl-test--buffer "-ifdef(TEST). -export([f/0]). -endif. -spec f() -> ok. f() -> ok."
     (should-not hinterl--overlays))
   (hinterl-test--buffer "-include(\"unknown.hrl\"). -export([f/0]). -spec f() -> ok. f() -> ok."
-    (should-not (hinterl-test--exports))
     (should (= 1 (length (hinterl-test--hints))))))
 
 (ert-deftest hinterl-two-buffers-isolated ()

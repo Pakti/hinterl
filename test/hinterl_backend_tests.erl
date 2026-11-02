@@ -41,20 +41,15 @@ record_and_annotated_type_test() ->
     [F] = functions("-spec birthday(P :: #person{}) -> #person{}.\nbirthday(P) -> P#person{}."),
     ?assertEqual([<<"P :: #person{}">>], maps:get(<<"arguments">>, alt(hd(clauses(F))))).
 
-exports_name_arity_and_quotes_test() ->
+name_arity_and_quotes_test() ->
     Fs = functions("-export(['a b'/1, f/0]).\n'a b'(X) -> X; 'a b'(Y) -> Y.\nf() -> ok.\nf(X) -> X."),
-    ?assertEqual([true, true, false], [maps:get(<<"exported">>, F) || F <- Fs]),
+    ?assertEqual([1, 0, 1], [maps:get(<<"arity">>, F) || F <- Fs]),
     [Quoted | _] = Fs,
     ?assertEqual(<<"a b">>, maps:get(<<"name">>, Quoted)),
     [C | _] = clauses(Quoted),
     ?assertEqual(#{<<"start">> => #{<<"line">> => 1, <<"character">> => 0},
                    <<"end">> => #{<<"line">> => 1, <<"character">> => 5}},
                  maps:get(<<"name_range">>, C)).
-
-export_all_test_() ->
-    [?_assert(lists:all(fun(F) -> maps:get(<<"exported">>, F) end,
-                       functions(Compile ++ "\nf() -> ok.\nf(X) -> X.")))
-     || Compile <- ["-compile(export_all).", "-compile([debug_info, export_all])."]].
 
 unicode_positions_test() ->
     [F] = functions("% 😀\n-spec 'hé😀'(binary(), atom()) -> ok.\n'hé😀'(<<\"😀\"/utf8>>,\t'å') -> ok."),
@@ -90,12 +85,9 @@ invalid_and_preprocessing_test_() ->
                         "-ifdef(TEST). -export([f/0]). -endif. f() -> ok.",
                         "-if(true). f() -> ok. -else. f() -> no. -endif."]].
 
-include_uncertainty_test() ->
+include_keeps_local_spec_test() ->
     R = a("-include(\"exports.hrl\"). -compile(export_all). -export([f/0]). -spec f() -> ok. f() -> ok."),
-    ?assertEqual(false, maps:get(<<"exports_certain">>, R)),
-    ?assertEqual([#{<<"name">> => <<"f">>, <<"arity">> => 0}], maps:get(<<"exports">>, R)),
     [F] = maps:get(<<"functions">>, R),
-    ?assertEqual(false, maps:get(<<"exported">>, F)),
     ?assertMatch(#{}, alt(hd(clauses(F)))).
 
 versioned_unsaved_requests_test() ->

@@ -34,11 +34,6 @@
   "Face for virtual argument and return types."
   :group 'hinterl)
 
-(defface erlang-exported-function-face
-  '((t (:inherit font-lock-function-name-face :weight bold)))
-  "Face for every clause head of an explicitly exported Erlang function."
-  :group 'hinterl)
-
 (defconst hinterl--mapping-help
   "Spec-derived hint; specs remain authoritative. One signature applies to all clauses. Multiple signatures map by position only when counts match. This is a display convention, not semantic validation or type inference.")
 
@@ -186,13 +181,7 @@
              (help (concat hinterl--mapping-help
                            (when spec (concat "\n\n" (hinterl--get "text" spec))))))
         (dolist (clause (hinterl--get "clauses" function))
-          (let* ((name (hinterl--get "name_range" clause))
-                 (alternative (hinterl--get "alternative" clause)))
-            (when (hinterl--get "exported" function)
-              (hinterl--overlay
-               (hinterl--position (hinterl--get "start" name))
-               (hinterl--position (hinterl--get "end" name))
-               'face 'erlang-exported-function-face 'help-echo "Exported function"))
+          (let ((alternative (hinterl--get "alternative" clause)))
             (when alternative
               (cl-mapc (lambda (range type)
                          (hinterl--hint (hinterl--get "end" range) type help))
@@ -254,7 +243,7 @@
 
 ;;;###autoload
 (define-minor-mode hinterl-mode
-  "Show spec types and exported clause heads without modifying Erlang text.
+  "Show spec types without modifying Erlang text.
 Signatures map to clauses by convention, not inference; hover hints for details."
   :lighter " Hinterl" :group 'hinterl
   (if hinterl-mode
