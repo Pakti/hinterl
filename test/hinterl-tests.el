@@ -184,7 +184,7 @@
     (let ((hinterl-record-hints nil))
       (hinterl-refresh)
       (hinterl-test--wait (lambda () (equal hinterl--status "ok")))
-      (should-not hinterl--overlays))))
+      (should-not (hinterl-test--hints)))))
 
 (ert-deftest hinterl-local-record-edit-clears-stale ()
   (hinterl-test--buffer "f() -> P = unknown(), P#person.age."
@@ -199,3 +199,41 @@
       (hinterl-test--wait (lambda () (equal hinterl--status "ok")))
       (should (equal " :: #animal{}" (substring-no-properties
                     (overlay-get (car (hinterl-test--hints)) 'after-string)))))))
+
+(ert-deftest hinterl-collapse-record-access-editing-and-option ()
+  (let ((source "f(P) -> P#person.age."))
+    (hinterl-test--buffer source
+      (let ((overlay (cl-find-if (lambda (o) (overlay-get o 'hinterl-record-access))
+                                hinterl--overlays)))
+        (should overlay)
+        (should (equal "." (overlay-get overlay 'display)))
+        (should (equal "Original Erlang syntax: #person." (overlay-get overlay 'help-echo)))
+        (should (equal source (buffer-string)))
+        (should (equal "#person." (buffer-substring-no-properties
+                                   (overlay-start overlay) (overlay-end overlay))))
+        (goto-char (1+ (overlay-start overlay)))
+        (run-hooks 'post-command-hook)
+        (should-not (overlay-get overlay 'display))
+        (goto-char (point-max))
+        (run-hooks 'post-command-hook)
+        (should (equal "." (overlay-get overlay 'display)))
+        (let ((hinterl-collapse-record-access nil))
+          (hinterl-refresh)
+          (hinterl-test--wait (lambda () (equal hinterl--status "ok")))
+          (should-not hinterl--overlays))))))
+
+(ert-deftest hinterl-collapse-access-stale-and-disable ()
+  (hinterl-test--buffer "f(P) -> P#person.age."
+    (let ((old hinterl--analysis))
+      (should hinterl--overlays)
+      (goto-char (point-max))
+      (insert "\n")
+      (should-not hinterl--overlays)
+      (hinterl--accept old)
+      (should-not hinterl--overlays)
+      (hinterl-refresh)
+      (hinterl-test--wait (lambda () (equal hinterl--status "ok")))
+      (should hinterl--overlays)
+      (hinterl-mode -1)
+      (should-not hinterl--overlays)
+      (should-not (memq #'hinterl--reveal-record-access post-command-hook)))))

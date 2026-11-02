@@ -166,3 +166,20 @@ record_quoted_unicode_locations_test() ->
     [H] = record_hints("% 😀\nf() -> P = unknown(), P#'a b'.age, P."),
     ?assertEqual(<<"#'a b'{}">>, maps:get(<<"type">>, H)),
     ?assertEqual(#{<<"line">> => 1, <<"character">> => 8}, maps:get(<<"position">>, H)).
+
+record_access_ranges_test() ->
+    Source = "f(P) -> P#person.age, (g())#'a b'.age, P#person.child#person.age, #person.age, P#person{age=1}, #person{}, \"P#person.age\". % P#person.age\n",
+    Accesses = maps:get(<<"record_accesses">>, a(Source)),
+    ?assertEqual([<<"#person.">>, <<"#'a b'.">>, <<"#person.">>, <<"#person.">>],
+                 [maps:get(<<"text">>, A) || A <- Accesses]),
+    [First | _] = Accesses,
+    ?assertEqual(#{<<"start">> => #{<<"line">> => 0, <<"character">> => 9},
+                   <<"end">> => #{<<"line">> => 0, <<"character">> => 17}},
+                 maps:get(<<"range">>, First)).
+
+record_access_whitespace_and_unicode_test() ->
+    ?assertEqual([], maps:get(<<"record_accesses">>, a("f(P) -> P# person.age, P#person .age, P#person % comment\n .age."))),
+    [Access] = maps:get(<<"record_accesses">>, a("% 😀\nf(P) -> P#'å'.age.")),
+    ?assertEqual(<<"#'å'."/utf8>>, maps:get(<<"text">>, Access)),
+    ?assertEqual(#{<<"line">> => 1, <<"character">> => 14},
+                 maps:get(<<"end">>, maps:get(<<"range">>, Access))).

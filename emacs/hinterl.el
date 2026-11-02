@@ -34,6 +34,12 @@
 Toggle this option and run `hinterl-refresh' to update existing decorations."
   :type 'boolean :group 'hinterl)
 
+(defcustom hinterl-collapse-record-access t
+  "Display record field reads as dotted access without modifying source.
+Original syntax is revealed while point is inside it.  Run `hinterl-refresh'
+after changing this option."
+  :type 'boolean :group 'hinterl)
+
 (defface hinterl-type-face
   '((t (:inherit shadow)))
   "Face for virtual argument and return types."
@@ -179,7 +185,27 @@ Toggle this option and run `hinterl-refresh' to update existing decorations."
                      (not (hinterl--get "module" spec))))
               specs))
 
+(defun hinterl--reveal-record-access ()
+  "Reveal collapsed syntax containing point; collapse other record reads."
+  (dolist (overlay hinterl--overlays)
+    (when (overlay-get overlay 'hinterl-record-access)
+      (overlay-put overlay 'display
+                   (unless (and (<= (overlay-start overlay) (point))
+                                (< (point) (overlay-end overlay)))
+                     ".")))))
+
 (defun hinterl--render (response)
+  (when hinterl-collapse-record-access
+    (dolist (access (hinterl--get "record_accesses" response))
+      (let* ((range (hinterl--get "range" access))
+             (start (hinterl--position (hinterl--get "start" range)))
+             (end (hinterl--position (hinterl--get "end" range)))
+             (text (hinterl--get "text" access)))
+        (unless (equal text (buffer-substring-no-properties start end))
+          (error "Record access source does not match"))
+        (hinterl--overlay start end 'display "." 'hinterl-record-access t
+                          'help-echo (concat "Original Erlang syntax: " text)))))
+  (hinterl--reveal-record-access)
   (when hinterl-record-hints
     (dolist (hint (hinterl--get "record_hints" response))
       (hinterl--hint
@@ -269,10 +295,12 @@ Signatures map to clauses by convention, not inference; hover hints for details.
           (progn (setq hinterl-mode nil)
                  (user-error "Hinterl requires ordinary erlang-mode"))
         (add-hook 'after-change-functions #'hinterl--changed nil t)
+        (add-hook 'post-command-hook #'hinterl--reveal-record-access nil t)
         (add-hook 'kill-buffer-hook #'hinterl--stop nil t)
         (add-hook 'change-major-mode-hook #'hinterl--stop nil t)
         (hinterl-refresh))
     (remove-hook 'after-change-functions #'hinterl--changed t)
+    (remove-hook 'post-command-hook #'hinterl--reveal-record-access t)
     (remove-hook 'kill-buffer-hook #'hinterl--stop t)
     (remove-hook 'change-major-mode-hook #'hinterl--stop t)
     (hinterl--stop)))

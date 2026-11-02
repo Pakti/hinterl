@@ -41,6 +41,7 @@ The request above produces this shape (whitespace shown for readability):
   "version": 42,
   "status": "ok",
   "record_hints": [],
+  "record_accesses": [],
   "specs": [{
     "name": "f", "arity": 1,
     "location": {"line": 1, "character": 1},
@@ -104,7 +105,7 @@ protocol character and two UTF-16 units. Line feeds start a new line.
 
 A valid `analyze` request with incomplete or unsupported buffer syntax returns the
 same `protocol`, `id`, and `version`, `status: "invalid"`, a human-readable
-`message`, and empty `functions`, `specs`, and `record_hints` arrays. Conditional
+`message`, and empty `functions`, `specs`, `record_hints`, and `record_accesses` arrays. Conditional
 compilation is also invalid for buffer-only analysis. Discard all decorations for
 that version. Do not use the last successful result. New successful snapshots
 recover without restarting the backend.
@@ -149,3 +150,28 @@ to be skipped. First simple top-level bindings are candidates, with redundant
 constructor/update hints suppressed. Return-spec evidence requires a defined local
 function and agreement on the same direct record across all alternatives; remote
 calls, union returns, aliases, and type-variable substitution are not resolved.
+
+## Compact record access
+
+`record_accesses` is an additive list of field-read decorations:
+
+```json
+{
+  "range": {
+    "start": {"line": 0, "character": 9},
+    "end": {"line": 0, "character": 17}
+  },
+  "text": "#person."
+}
+```
+
+The range covers just `#person.` in a parsed expression such as
+`f(P) -> P#person.age.`. A client can replace its visual display with `.` and use
+`text` for hover while leaving the source intact. Emacs reveals original syntax
+when point enters the range. These decorations share the request's version checks
+and are independent of record association hints. Ranges refer to read AST nodes
+only; constructors, updates, record indices, strings, and comments are excluded.
+Only contiguous, single-line token spelling is returned, so comments, line breaks,
+and whitespace cannot accidentally be hidden. Quoted record names and chained
+reads are supported. Clients should verify `text` matches the source range before
+applying a display replacement.

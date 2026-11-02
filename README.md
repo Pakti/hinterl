@@ -123,6 +123,21 @@ no local record hints. Only first, simple variable bindings in the top-level bod
 are decorated; constructors, updates, head parameters, repeated matches, and `_`
 are not. This is a bounded heuristic, not general type inference or checking.
 
+## Compact record field access
+
+`hinterl-collapse-record-access` (enabled by default) displays `Older#person.age`
+as `Older.age`. This is an overlay: saving, copying, and compiling still use the
+original Erlang text. Hover the dot to see the original `#person.` syntax.
+Moving point into the collapsed region temporarily reveals the full syntax for
+editing; moving out collapses it again. Disable the option and run
+`M-x hinterl-refresh` to retain ordinary record reads.
+
+Only parsed record field reads are collapsed, including chained reads and reads
+on expressions. Constructors, record updates, field-index expressions such as
+`#person.age`, strings, and comments remain unchanged. Reads whose `#record.`
+spelling contains intervening whitespace/comments or spans lines remain explicit.
+This option is independent of local record hints and requires no inferred type.
+
 ## Backend and editing
 
 Each enabled buffer owns one persistent Erlang process. Emacs sends the whole

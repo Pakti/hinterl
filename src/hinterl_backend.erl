@@ -36,7 +36,7 @@ analyze(Source) when is_binary(Source) ->
 
 invalid(Message) ->
     #{<<"status">> => <<"invalid">>, <<"message">> => Message,
-      <<"functions">> => [], <<"specs">> => [], <<"record_hints">> => []}.
+      <<"functions">> => [], <<"specs">> => [], <<"record_hints">> => [], <<"record_accesses">> => []}.
 
 analyze_tokens(Tokens) ->
     Forms = split_forms(Tokens, [], []),
@@ -76,7 +76,8 @@ result(Parsed) ->
                  || {F = {function, _, _, _, _}, Ts} <- Parsed],
     #{<<"status">> => <<"ok">>, <<"functions">> => Functions,
       <<"specs">> => Specs,
-      <<"record_hints">> => hinterl_records:analyze([F || {F, _} <- Parsed])}.
+      <<"record_hints">> => hinterl_records:analyze([F || {F, _} <- Parsed]),
+      <<"record_accesses">> => lists:append([record_accesses(F, Ts) || {F, Ts} <- Parsed])}.
 
 identity(Name, Arity) -> #{<<"name">> => atom_to_binary(Name), <<"arity">> => Arity}.
 
@@ -182,3 +183,27 @@ token_text(Tokens) ->
     %% Keep exact token spelling (including variables); whitespace between tokens
     %% is normalized for hover. The visible buffer spec remains authoritative.
     unicode:characters_to_binary(lists:join(" ", [erl_anno:text(element(2, T)) || T <- Tokens])).
+
+%% Read nodes carry the scanner annotation of their # token. Constructors,
+%% updates and record indices have different AST shapes and are never selected.
+record_accesses({record_field, A, Expr, _, _}, Tokens) ->
+    Here = lists:dropwhile(fun(T) -> erl_anno:location(element(2, T)) =/=
+                                    erl_anno:location(A) end, Tokens),
+    Access = case Here of
+        [Hash = {'#', _}, Name = {atom, _, _}, Dot = {'.', _} | _] ->
+            %% Do not conceal comments, whitespace, or newlines between tokens.
+            case end_pos(Hash) =:= pos(element(2, Name)) andalso
+                 end_pos(Name) =:= pos(element(2, Dot)) andalso
+                 maps:get(<<"line">>, pos(A)) =:= maps:get(<<"line">>, end_pos(Dot)) of
+                true -> [#{<<"range">> => range(Hash, Dot),
+                           <<"text">> => unicode:characters_to_binary(
+                               [erl_anno:text(element(2, T)) || T <- [Hash, Name, Dot]])}];
+                false -> []
+            end;
+        _ -> []
+    end,
+    record_accesses(Expr, Tokens) ++ Access;
+record_accesses(T, Tokens) when is_tuple(T) -> record_accesses(tuple_to_list(T), Tokens);
+record_accesses(T, Tokens) when is_list(T) ->
+    lists:append([record_accesses(X, Tokens) || X <- T]);
+record_accesses(_, _) -> [].
