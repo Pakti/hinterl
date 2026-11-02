@@ -40,6 +40,16 @@ Original syntax is revealed while point is inside it.  Run `hinterl-refresh'
 after changing this option."
   :type 'boolean :group 'hinterl)
 
+(defcustom hinterl-dim-specs nil
+  "Dim specs with `hinterl-spec-face' while keeping them visible and editable.
+Run `hinterl-refresh' after changing this option."
+  :type 'boolean :group 'hinterl)
+
+(defface hinterl-spec-face
+  '((t (:inherit shadow)))
+  "Face for specs when `hinterl-dim-specs' is enabled."
+  :group 'hinterl)
+
 (defface hinterl-type-face
   '((t (:inherit shadow)))
   "Face for virtual argument and return types."
@@ -192,6 +202,13 @@ after changing this option."
                      ".")))))
 
 (defun hinterl--render (response)
+  (when hinterl-dim-specs
+    (dolist (spec (hinterl--get "specs" response))
+      (let ((range (hinterl--get "range" spec)))
+        (when range
+          (hinterl--overlay (hinterl--position (hinterl--get "start" range))
+                            (hinterl--position (hinterl--get "end" range))
+                            'face 'hinterl-spec-face)))))
   (when hinterl-collapse-record-access
     (dolist (access (hinterl--get "record_accesses" response))
       (let* ((range (hinterl--get "range" access))

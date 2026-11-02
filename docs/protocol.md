@@ -45,6 +45,7 @@ The request above produces this shape (whitespace shown for readability):
   "specs": [{
     "name": "f", "arity": 1,
     "location": {"line": 1, "character": 1},
+    "range": {"start": {"line": 1, "character": 0}, "end": {"line": 1, "character": 29}},
     "text": "- spec f ( integer ( ) ) -> atom ( ) .\n",
     "alternatives": [{"arguments": ["integer()"], "return": "atom()", "constraints": []}]
   }],
@@ -178,3 +179,11 @@ Only contiguous, single-line token spelling is returned, so comments, line break
 and whitespace cannot accidentally be hidden. Quoted record names and chained
 reads are supported. Clients should verify `text` matches the source range before
 applying a display replacement.
+
+## Spec presentation ranges
+
+Each spec includes `range`, from the leading `-` through the terminating period,
+with an exclusive end and no trailing newline. It covers all alternatives and
+constraints across multiple lines. Clients may use this for optional visual
+dimming. Emacs uses `hinterl-spec-face` when `hinterl-dim-specs` is enabled; this
+never alters the source or hides the spec.

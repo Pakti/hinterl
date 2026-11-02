@@ -70,6 +70,13 @@ Useful commands:
 Type hints have no hover tooltips. Specs remain visible and authoritative,
 including constraints; use `hinterl-jump-to-spec` to navigate to them.
 
+## Optional spec dimming
+
+Set `hinterl-dim-specs` to `t` and run `M-x hinterl-refresh` to dim specs using
+`hinterl-spec-face` (inherits `shadow` by default). Customize the face independently
+of type hints. Dimming is off by default; specs remain visible, editable, and
+unchanged in the source. Multiline and overloaded specs are dimmed in full.
+
 ## Mapping rules
 
 Spec hints use **no inference or semantic clause/signature matching**:

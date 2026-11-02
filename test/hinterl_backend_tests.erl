@@ -186,3 +186,10 @@ record_access_whitespace_and_unicode_test() ->
     ?assertEqual(<<"#'å'."/utf8>>, maps:get(<<"text">>, Access)),
     ?assertEqual(#{<<"line">> => 1, <<"character">> => 14},
                  maps:get(<<"end">>, maps:get(<<"range">>, Access))).
+
+spec_full_range_test() ->
+    R = a("-spec f(integer()) -> atom();\n       (atom()) -> integer(). % trailing\nf(X) -> X."),
+    [S] = maps:get(<<"specs">>, R),
+    ?assertEqual(#{<<"start">> => #{<<"line">> => 0, <<"character">> => 0},
+                   <<"end">> => #{<<"line">> => 1, <<"character">> => 29}},
+                 maps:get(<<"range">>, S)).

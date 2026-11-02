@@ -84,6 +84,7 @@ identity(Name, Arity) -> #{<<"name">> => atom_to_binary(Name), <<"arity">> => Ar
 spec({attribute, Anno, spec, {{Name, Arity}, Alternatives}}, Tokens) ->
     (identity(Name, Arity))#{<<"location">> => pos(Anno),
       <<"text">> => token_text(Tokens),
+      <<"range">> => spec_range(Tokens),
       <<"alternatives">> => [alternative(A) || A <- Alternatives]};
 spec({attribute, Anno, spec, {{Module, Name, Arity}, Alternatives}}, Tokens) ->
     (spec({attribute, Anno, spec, {{Name, Arity}, Alternatives}}, Tokens))#{
@@ -208,3 +209,10 @@ record_accesses(T, Tokens) when is_tuple(T) -> record_accesses(tuple_to_list(T),
 record_accesses(T, Tokens) when is_list(T) ->
     lists:append([record_accesses(X, Tokens) || X <- T]);
 record_accesses(_, _) -> [].
+
+spec_range(Tokens) ->
+    %% The scanner's dot text may contain a trailing newline. Dim the period,
+    %% but leave the following whitespace and comments outside the spec range.
+    Dot = pos(element(2, lists:last(Tokens))),
+    #{<<"start">> => pos(element(2, hd(Tokens))),
+      <<"end">> => Dot#{<<"character">> := maps:get(<<"character">>, Dot) + 1}}.
