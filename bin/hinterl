@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ ! -f "$root/_build/hinterl_backend.beam" ]; then
+    echo 'Hinterl: run make in the repository first' >&2
+    exit 1
+fi
+exec erl +S 2:2 -noshell -pa "$root/_build" -s hinterl_backend main

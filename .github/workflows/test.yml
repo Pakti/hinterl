@@ -1,0 +1,15 @@
+name: Test
+on: [push, pull_request]
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: '27'
+      - name: Install Emacs
+        run: sudo apt-get update && sudo apt-get install -y emacs-nox
+      - run: make test
+      - name: Byte compile Emacs client
+        run: emacs -Q --batch -L emacs --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile emacs/hinterl.el
