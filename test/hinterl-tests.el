@@ -209,6 +209,8 @@
                                 hinterl--overlays)))
         (should overlay)
         (should (equal "." (overlay-get overlay 'display)))
+        (should (eq 'hinterl-record-access-face
+                    (get-text-property 0 'face (overlay-get overlay 'display))))
         (should (equal "P#person.age" (overlay-get overlay 'help-echo)))
         (should (equal source (buffer-string)))
         (should (equal "#person." (buffer-substring-no-properties
@@ -219,6 +221,8 @@
         (goto-char (point-max))
         (run-hooks 'post-command-hook)
         (should (equal "." (overlay-get overlay 'display)))
+        (should (eq 'hinterl-record-access-face
+                    (get-text-property 0 'face (overlay-get overlay 'display))))
         (let ((hinterl-collapse-record-access nil))
           (hinterl-refresh)
           (hinterl-test--wait (lambda () (equal hinterl--status "ok")))

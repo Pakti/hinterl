@@ -133,7 +133,8 @@ are not. This is a bounded heuristic, not general type inference or checking.
 ## Compact record field access
 
 `hinterl-collapse-record-access` (enabled by default) displays `Older#person.age`
-as `Older.age`. This is an overlay: saving, copying, and compiling still use the
+as `Older.age`. Customize `hinterl-record-access-face` to style the collapsed dot
+(default: inherits `default`). This is an overlay: saving, copying, and compiling still use the
 original Erlang text. Hover the dot to see the full expression, e.g. `Older#person.age`.
 Moving point into the collapsed region temporarily reveals the full syntax for
 editing; moving out collapses it again. Disable the option and run

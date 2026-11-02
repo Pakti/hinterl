@@ -50,6 +50,11 @@ Run `hinterl-refresh' after changing this option."
   "Face for specs when `hinterl-dim-specs' is enabled."
   :group 'hinterl)
 
+(defface hinterl-record-access-face
+  '((t (:inherit default)))
+  "Face for the dot replacing collapsed record field access syntax."
+  :group 'hinterl)
+
 (defface hinterl-type-face
   '((t (:inherit shadow)))
   "Face for virtual argument and return types."
@@ -199,7 +204,7 @@ Run `hinterl-refresh' after changing this option."
       (overlay-put overlay 'display
                    (unless (and (<= (overlay-start overlay) (point))
                                 (< (point) (overlay-end overlay)))
-                     ".")))))
+                     (propertize "." 'face 'hinterl-record-access-face))))))
 
 (defun hinterl--render (response)
   (when hinterl-dim-specs
@@ -217,7 +222,7 @@ Run `hinterl-refresh' after changing this option."
              (text (hinterl--get "text" access)))
         (unless (equal text (buffer-substring-no-properties start end))
           (error "Record access source does not match"))
-        (hinterl--overlay start end 'display "." 'hinterl-record-access t
+        (hinterl--overlay start end 'hinterl-record-access t
                           'help-echo (hinterl--get "expression" access)))))
   (hinterl--reveal-record-access)
   (when hinterl-record-hints
