@@ -191,5 +191,8 @@ never alters the source or hides the spec.
 Complete `-define` forms are ignored as preprocessor token sequences rather than
 passed to `erl_parse`. This permits hints in otherwise parseable buffers with
 unused object-like or function-like macros. Definitions are not expanded or
-validated semantically. Incomplete/unbalanced definitions, unresolved macro usages
-in other forms, and conditional compilation still invalidate buffer analysis.
+validated semantically. Complete, delimited forms that fail parsing and contain
+unresolved macro usages are omitted entirely; other independently parsed forms
+remain in the successful result. No clauses of a skipped function are decorated.
+Incomplete/unbalanced definitions, incomplete forms, other parse failures, and
+conditional compilation still invalidate buffer analysis.

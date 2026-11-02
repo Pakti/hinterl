@@ -81,7 +81,6 @@ invalid_and_preprocessing_test_() ->
         ?assertEqual(<<"invalid">>, maps:get(<<"status">>, R)),
         ?assertEqual([], maps:get(<<"functions">>, R))
     end) || Source <- ["f(X) ->", "f(X) -> X", "f(\"unfinished) -> ok.",
-                        "-export([?F/1]). f(X) -> X.",
                         "-ifdef(TEST). -export([f/0]). -endif. f() -> ok.",
                         "-if(true). f() -> ok. -else. f() -> no. -endif."]].
 
@@ -209,5 +208,29 @@ macro_token_bodies_test() ->
 incomplete_or_used_macros_test_() ->
     [?_assertEqual(<<"invalid">>, maps:get(<<"status">>, hinterl_backend:analyze(Source)))
      || Source <- [<<"-define(A, 1)">>, <<"-define(A, f(1). f() -> ok.">>,
-                   <<"-define(A, 1). f() -> ?A.">>,
                    <<"-ifdef(TEST). -define(A, 1). -endif. f() -> ok.">>]].
+
+macro_usage_isolates_affected_function_test() ->
+    Source = "-module(otp). -include(\"graphql_client.hrl\").\n"
+             "-define(DEFAULT_CONNECT_TIMEOUT_MSECS, 5_000).\n"
+             "-define(DEFAULT_RECV_TIMEOUT_MSECS, 5_000).\n"
+             "-spec local_server_url() -> binary().\n"
+             "local_server_url() -> <<\"http://localhost:8080/otp/gtfs/v1\">>.\n"
+             "-spec make_default_client() -> result:type(#graphql_client{}).\n"
+             "make_default_client() -> result:map(fun(Transport) -> #graphql_client{"
+             "url = otp:local_server_url(), transport = Transport,"
+             "connect_timeout_msecs = ?DEFAULT_CONNECT_TIMEOUT_MSECS,"
+             "recv_timeout_msecs = ?DEFAULT_RECV_TIMEOUT_MSECS} end,"
+             "graphql_client:make_default_http_transport()).\n"
+             "-spec after_macro() -> ok. after_macro() -> ok.",
+    Fs = functions(Source),
+    ?assertEqual([<<"local_server_url">>, <<"after_macro">>],
+                 [maps:get(<<"name">>, F) || F <- Fs]),
+    ?assertEqual(<<"binary()">>, maps:get(<<"return">>, alt(hd(clauses(hd(Fs)))))).
+
+macro_usage_omits_entire_multiclause_function_test() ->
+    Fs = functions("-spec f(integer()) -> integer(). f(0) -> 0; f(X) -> ?M(X). g() -> ok."),
+    ?assertEqual([<<"g">>], [maps:get(<<"name">>, F) || F <- Fs]),
+    ?assertEqual([], functions("-spec f() -> ?TYPE. f() -> ?VALUE.")),
+    ?assertEqual(<<"invalid">>, maps:get(<<"status">>,
+        hinterl_backend:analyze(<<"f() -> ?VALUE">>))).

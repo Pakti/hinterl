@@ -74,7 +74,14 @@ parse_forms([[{'-', _}, {atom, _, define}, {'(', _} | _] = Tokens | Rest], Acc) 
 parse_forms([Tokens | Rest], Acc) ->
     case erl_parse:parse_form(Tokens) of
         {ok, Form} -> parse_forms(Rest, [{Form, Tokens} | Acc]);
-        _ -> error
+        _ ->
+            %% Never invent macro values or partially decorate a function. A
+            %% complete, delimited macro-dependent form can be omitted safely.
+            case lists:any(fun(T) -> element(1, T) =:= '?' end, Tokens)
+                 andalso complete_define(Tokens, []) of
+                true -> parse_forms(Rest, Acc);
+                false -> error
+            end
     end.
 
 complete_define([{dot, _}], []) -> true;

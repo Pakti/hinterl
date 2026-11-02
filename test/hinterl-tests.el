@@ -275,3 +275,10 @@
     (should (= 1 (length (hinterl-test--hints))))
     (should (equal " :: binary()" (substring-no-properties
                                   (overlay-get (car (hinterl-test--hints)) 'after-string))))))
+
+(ert-deftest hinterl-macro-usage-preserves-other-function-hints ()
+  (hinterl-test--buffer "-define(TIMEOUT, 5_000).\n-spec url() -> binary(). url() -> <<\"url\">>.\n-spec client() -> result:type(#client{}). client() -> fun(T) -> #client{timeout = ?TIMEOUT, transport = T} end."
+    (should (equal hinterl--status "ok"))
+    (should (= 1 (length (hinterl-test--hints))))
+    (should (equal " :: binary()" (substring-no-properties
+                                  (overlay-get (car (hinterl-test--hints)) 'after-string))))))
