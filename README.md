@@ -16,8 +16,7 @@ With Hinterl enabled, the clause head appears as:
 birthday(P :: #person{}) :: #person{} ->
 ```
 
-The types use `hinterl-type-face`. Function-name highlighting is handled by
-ordinary `erlang-mode`.
+The types use `hinterl-type-face`.
 
 ## Linux setup
 
