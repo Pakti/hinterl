@@ -45,9 +45,6 @@ after changing this option."
   "Face for virtual argument and return types."
   :group 'hinterl)
 
-(defconst hinterl--mapping-help
-  "Spec-derived hint; specs remain authoritative. One signature applies to all clauses. Multiple signatures map by position only when counts match. This is a display convention, not semantic validation or type inference.")
-
 (defvar-local hinterl--process nil)
 (defvar-local hinterl--timer nil)
 (defvar-local hinterl--overlays nil)
@@ -171,12 +168,12 @@ after changing this option."
     (push overlay hinterl--overlays)
     overlay))
 
-(defun hinterl--hint (position text help)
+(defun hinterl--hint (position text)
   (let* ((at (hinterl--position position))
          ;; A single line even when Erlang's pretty printer wraps a nested type.
          (display (propertize (concat " :: " (replace-regexp-in-string "[\n\r]+[ \t]*" " " text))
-                              'face 'hinterl-type-face 'help-echo help)))
-    (hinterl--overlay at at 'after-string display 'help-echo help)))
+                              'face 'hinterl-type-face)))
+    (hinterl--overlay at at 'after-string display)))
 
 (defun hinterl--spec-for (function specs)
   (cl-find-if (lambda (spec)
@@ -204,35 +201,21 @@ after changing this option."
         (unless (equal text (buffer-substring-no-properties start end))
           (error "Record access source does not match"))
         (hinterl--overlay start end 'display "." 'hinterl-record-access t
-                          'help-echo (concat "Original Erlang syntax: " text)))))
+                          'help-echo (hinterl--get "expression" access)))))
   (hinterl--reveal-record-access)
   (when hinterl-record-hints
     (dolist (hint (hinterl--get "record_hints" response))
-      (hinterl--hint
-       (hinterl--get "position" hint) (hinterl--get "type" hint)
-       (concat "Record association, not a verified type. Specs remain authoritative.\n"
-               (mapconcat
-                (lambda (evidence)
-                  (let ((location (hinterl--get "location" evidence)))
-                    (format "%s at line %d, column %d"
-                            (hinterl--get "kind" evidence)
-                            (1+ (hinterl--get "line" location))
-                            (1+ (hinterl--get "character" location)))))
-                (hinterl--get "evidence" hint) "\n")))))
-  (let ((specs (hinterl--get "specs" response)))
-    (dolist (function (hinterl--get "functions" response))
-      (let* ((spec (hinterl--spec-for function specs))
-             (help (concat hinterl--mapping-help
-                           (when spec (concat "\n\n" (hinterl--get "text" spec))))))
-        (dolist (clause (hinterl--get "clauses" function))
-          (let ((alternative (hinterl--get "alternative" clause)))
-            (when alternative
-              (cl-mapc (lambda (range type)
-                         (hinterl--hint (hinterl--get "end" range) type help))
-                       (hinterl--get "arguments" clause)
-                       (hinterl--get "arguments" alternative))
-              (hinterl--hint (hinterl--get "head_end" clause)
-                             (hinterl--get "return" alternative) help))))))))
+      (hinterl--hint (hinterl--get "position" hint) (hinterl--get "type" hint))))
+  (dolist (function (hinterl--get "functions" response))
+    (dolist (clause (hinterl--get "clauses" function))
+      (let ((alternative (hinterl--get "alternative" clause)))
+        (when alternative
+          (cl-mapc (lambda (range type)
+                     (hinterl--hint (hinterl--get "end" range) type))
+                   (hinterl--get "arguments" clause)
+                   (hinterl--get "arguments" alternative))
+          (hinterl--hint (hinterl--get "head_end" clause)
+                         (hinterl--get "return" alternative)))))))
 
 (defun hinterl--accept (response)
   "Apply RESPONSE only to the exact buffer version and most recent request."
@@ -288,7 +271,7 @@ after changing this option."
 ;;;###autoload
 (define-minor-mode hinterl-mode
   "Show spec types without modifying Erlang text.
-Signatures map to clauses by convention, not inference; hover hints for details."
+Signatures map to clauses by convention, not inference; see README for details."
   :lighter " Hinterl" :group 'hinterl
   (if hinterl-mode
       (if (not (derived-mode-p 'erlang-mode))

@@ -24,7 +24,7 @@
 
 (defun hinterl-test--hints ()
   (cl-remove-if-not (lambda (o) (overlay-get o 'after-string)) hinterl--overlays))
-(ert-deftest hinterl-unsaved-overlays-and-hover ()
+(ert-deftest hinterl-unsaved-overlays-without-tooltips ()
   (let ((source "-spec birthday(#person{}) -> #person{}.\nbirthday(P) -> P#person{}.\n"))
     (hinterl-test--buffer source
       (should (equal hinterl--status "ok"))
@@ -34,7 +34,8 @@
       (dolist (o (hinterl-test--hints))
         (should (= (overlay-start o) (overlay-end o)))
         (should (equal " :: #person{}" (substring-no-properties (overlay-get o 'after-string))))
-        (should (string-match-p "not semantic validation" (overlay-get o 'help-echo))))
+        (should-not (overlay-get o 'help-echo))
+        (should-not (get-text-property 0 'help-echo (overlay-get o 'after-string))))
       (goto-char (point-min))
       (search-forward "birthday(P)")
       (hinterl-jump-to-spec)
@@ -177,7 +178,8 @@
   (hinterl-test--buffer "new() -> P = #person{}, Alias = P, Older = birthday(Alias), Older#person.age."
     (should (= 2 (length (hinterl-test--hints))))
     (dolist (o (hinterl-test--hints))
-      (should (string-match-p "not a verified type" (overlay-get o 'help-echo)))
+      (should-not (overlay-get o 'help-echo))
+      (should-not (get-text-property 0 'help-echo (overlay-get o 'after-string)))
       (save-excursion
         (goto-char (overlay-start o))
         (should (looking-at " ="))))
@@ -207,7 +209,7 @@
                                 hinterl--overlays)))
         (should overlay)
         (should (equal "." (overlay-get overlay 'display)))
-        (should (equal "Original Erlang syntax: #person." (overlay-get overlay 'help-echo)))
+        (should (equal "P#person.age" (overlay-get overlay 'help-echo)))
         (should (equal source (buffer-string)))
         (should (equal "#person." (buffer-substring-no-properties
                                    (overlay-start overlay) (overlay-end overlay))))

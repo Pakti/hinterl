@@ -74,10 +74,10 @@ The request above produces this shape (whitespace shown for readability):
   list of constraint strings such as `A :: integer()`. Variables stay named;
   types are rendered by `erl_pp`, possibly with line breaks. Clients may flatten
   layout newlines for inlays. Specs also retain token spelling as `text` with
-  normalized inter-token whitespace, suitable for hover. The source spec remains
+  normalized inter-token whitespace. Emacs type hints have no hover tooltips. The source spec remains
   the authority. A qualified spec additionally has `module` and is not mapped
   to local functions by v1.
-- Display clients should expose this limitation on hover/documentation:
+- Display clients should document this limitation:
   **One spec applies to every clause; multiple alternatives map by position only
   when counts match. This is a display convention, not semantic validation or
   inference. Specs remain authoritative.**
@@ -141,7 +141,7 @@ coordinate convention. `type` is display text, including quoting for record name
 Evidence kinds describe record construction/patterns, access, updates, or a
 same-buffer return spec. Evidence locations identify the originating AST expression
 or match; an alias inherits its connected variables' evidence. Consumers should
-show that these are associations, not verified types, and retain specs as the
+document that these are associations, not verified types, and retain specs as the
 authority. No unknown-type placeholder is returned.
 
 Conflicting records suppress the entire alias component. Clauses are isolated;
@@ -161,13 +161,16 @@ calls, union returns, aliases, and type-variable substitution are not resolved.
     "start": {"line": 0, "character": 9},
     "end": {"line": 0, "character": 17}
   },
-  "text": "#person."
+  "text": "#person.",
+  "expression": "P#person.age"
 }
 ```
 
 The range covers just `#person.` in a parsed expression such as
 `f(P) -> P#person.age.`. A client can replace its visual display with `.` and use
-`text` for hover while leaving the source intact. Emacs reveals original syntax
+`expression` for hover while leaving the source intact. `expression` is the full
+field-read expression rendered by `erl_pp` (formatting may be normalized); `text`
+remains the exact source spelling of the collapsed range. Emacs reveals original syntax
 when point enters the range. These decorations share the request's version checks
 and are independent of record association hints. Ranges refer to read AST nodes
 only; constructors, updates, record indices, strings, and comments are excluded.

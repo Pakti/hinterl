@@ -67,8 +67,8 @@ Useful commands:
 - `customize-group` → `hinterl`: set faces, backend command, and idle delay
   (default 0.3 seconds).
 
-Hover a type hint for its mapping limitation and full token-preserved spec,
-including constraints. Specs remain visible and authoritative.
+Type hints have no hover tooltips. Specs remain visible and authoritative,
+including constraints; use `hinterl-jump-to-spec` to navigate to them.
 
 ## Mapping rules
 
@@ -78,10 +78,9 @@ Spec hints use **no inference or semantic clause/signature matching**:
 2. Multiple alternatives map to clauses in source order only when counts match.
 3. Otherwise type hints are suppressed; the spec remains visible.
 
-For example, alternative 1 may not semantically describe clause 1. Hint hover text
-makes this convention explicit. Type variables, nested types, fun types, and
+For example, alternative 1 may not semantically describe clause 1. Type variables, nested types, fun types, and
 constraints are retained. Inline types come from Erlang's type pretty printer;
-constraints remain in the visible spec and hover rather than being repeated inline.
+constraints remain in the visible spec rather than being repeated inline.
 Functions without specs receive no type hints.
 
 ## Local record hints
@@ -107,8 +106,9 @@ so it gets no redundant hint. Hints are overlays, just like spec hints.
 
 The backend associates variables with records using construction, record patterns,
 access, updates, and simple aliases. Evidence can occur later than the binding.
-Hover shows its kind and source location, with a warning that the association is
-not a verified type: record access can fail at runtime.
+An association is not a verified type: record access can fail at runtime.
+The protocol retains evidence kinds and source locations, but type hints have no
+hover tooltips.
 
 Local calls can also supply evidence from a **same-buffer spec** if the function
 is defined there and every spec alternative returns the same direct record type.
@@ -127,7 +127,7 @@ are not. This is a bounded heuristic, not general type inference or checking.
 
 `hinterl-collapse-record-access` (enabled by default) displays `Older#person.age`
 as `Older.age`. This is an overlay: saving, copying, and compiling still use the
-original Erlang text. Hover the dot to see the original `#person.` syntax.
+original Erlang text. Hover the dot to see the full expression, e.g. `Older#person.age`.
 Moving point into the collapsed region temporarily reveals the full syntax for
 editing; moving out collapses it again. Disable the option and run
 `M-x hinterl-refresh` to retain ordinary record reads.

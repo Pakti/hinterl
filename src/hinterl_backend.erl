@@ -186,7 +186,7 @@ token_text(Tokens) ->
 
 %% Read nodes carry the scanner annotation of their # token. Constructors,
 %% updates and record indices have different AST shapes and are never selected.
-record_accesses({record_field, A, Expr, _, _}, Tokens) ->
+record_accesses(Node = {record_field, A, Expr, _, _}, Tokens) ->
     Here = lists:dropwhile(fun(T) -> erl_anno:location(element(2, T)) =/=
                                     erl_anno:location(A) end, Tokens),
     Access = case Here of
@@ -196,6 +196,7 @@ record_accesses({record_field, A, Expr, _, _}, Tokens) ->
                  end_pos(Name) =:= pos(element(2, Dot)) andalso
                  maps:get(<<"line">>, pos(A)) =:= maps:get(<<"line">>, end_pos(Dot)) of
                 true -> [#{<<"range">> => range(Hash, Dot),
+                           <<"expression">> => unicode:characters_to_binary(erl_pp:expr(Node)),
                            <<"text">> => unicode:characters_to_binary(
                                [erl_anno:text(element(2, T)) || T <- [Hash, Name, Dot]])}];
                 false -> []
