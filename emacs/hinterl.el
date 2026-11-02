@@ -29,6 +29,11 @@
   "Idle seconds before analyzing changed buffer contents."
   :type 'number :group 'hinterl)
 
+(defcustom hinterl-record-hints t
+  "Show heuristic record hints at local bindings, independently of spec hints.
+Toggle this option and run `hinterl-refresh' to update existing decorations."
+  :type 'boolean :group 'hinterl)
+
 (defface hinterl-type-face
   '((t (:inherit shadow)))
   "Face for virtual argument and return types."
@@ -175,6 +180,19 @@
               specs))
 
 (defun hinterl--render (response)
+  (when hinterl-record-hints
+    (dolist (hint (hinterl--get "record_hints" response))
+      (hinterl--hint
+       (hinterl--get "position" hint) (hinterl--get "type" hint)
+       (concat "Record association, not a verified type. Specs remain authoritative.\n"
+               (mapconcat
+                (lambda (evidence)
+                  (let ((location (hinterl--get "location" evidence)))
+                    (format "%s at line %d, column %d"
+                            (hinterl--get "kind" evidence)
+                            (1+ (hinterl--get "line" location))
+                            (1+ (hinterl--get "character" location)))))
+                (hinterl--get "evidence" hint) "\n")))))
   (let ((specs (hinterl--get "specs" response)))
     (dolist (function (hinterl--get "functions" response))
       (let* ((spec (hinterl--spec-for function specs))

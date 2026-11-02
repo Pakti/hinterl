@@ -72,7 +72,7 @@ including constraints. Specs remain visible and authoritative.
 
 ## Mapping rules
 
-Hinterl does **no inference or semantic clause/signature matching**:
+Spec hints use **no inference or semantic clause/signature matching**:
 
 1. A single signature supplies types to every implementation clause.
 2. Multiple alternatives map to clauses in source order only when counts match.
@@ -83,6 +83,45 @@ makes this convention explicit. Type variables, nested types, fun types, and
 constraints are retained. Inline types come from Erlang's type pretty printer;
 constraints remain in the visible spec and hover rather than being repeated inline.
 Functions without specs receive no type hints.
+
+## Local record hints
+
+`hinterl-record-hints` (enabled by default) independently controls record hints at
+simple local variable bindings. Change it with Customize and run
+`M-x hinterl-refresh` to update the buffer.
+
+For example, the following source:
+
+```erlang
+new() ->
+    P = #person{name = "Ada", age = 41},
+    Alias = P,
+    Older = birthday(Alias),
+    42 = Older#person.age,
+    Older.
+```
+
+displays `Alias :: #person{} = P` and
+`Older :: #person{} = birthday(Alias)`. The constructor already identifies `P`,
+so it gets no redundant hint. Hints are overlays, just like spec hints.
+
+The backend associates variables with records using construction, record patterns,
+access, updates, and simple aliases. Evidence can occur later than the binding.
+Hover shows its kind and source location, with a warning that the association is
+not a verified type: record access can fail at runtime.
+
+Local calls can also supply evidence from a **same-buffer spec** if the function
+is defined there and every spec alternative returns the same direct record type.
+Calls are matched by name and arity. Remote calls, unions, type aliases, and type
+variable substitution are not resolved. No tag tables or external analyzer are
+required.
+
+Conflicting record evidence suppresses the hint, including contradictions between
+a return spec and usage. Each function clause is independent. Initially, a clause
+containing branches, funs, comprehensions, or other ambiguous control flow receives
+no local record hints. Only first, simple variable bindings in the top-level body
+are decorated; constructors, updates, head parameters, repeated matches, and `_`
+are not. This is a bounded heuristic, not general type inference or checking.
 
 ## Backend and editing
 

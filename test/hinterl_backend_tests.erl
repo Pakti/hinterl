@@ -123,3 +123,46 @@ scanner_and_parser_fidelity_test_() ->
         ?assert(is_binary(maps:get(<<"return">>, A)))
     end) || Type <- ["-10..10", "<<_:8, _:_*8>>", "{ok, [integer(), ...]} | {error, term()}",
                         "fun()", "fun((...) -> atom())", "'quoted atom'", "#{atom() := [binary()]}"]].
+
+record_hints(Source) -> maps:get(<<"record_hints">>, a(Source)).
+hint_names(Hints) -> [maps:get(<<"variable">>, H) || H <- Hints].
+
+record_example_test() ->
+    Hs = record_hints("new() -> P = #person{name = \"Ada\", age = 41}, Alias = P, Older = birthday(Alias), 42 = Older#person.age, Older."),
+    ?assertEqual([<<"Alias">>, <<"Older">>], hint_names(Hs)),
+    ?assertEqual([<<"#person{}">>, <<"#person{}">>], [maps:get(<<"type">>, H) || H <- Hs]).
+
+record_alias_backward_and_patterns_test() ->
+    ?assertEqual([<<"A">>, <<"B">>], hint_names(record_hints(
+        "f() -> A = unknown(), B = A, #person{} = B, A."))),
+    ?assertEqual([<<"Alias">>], hint_names(record_hints(
+        "f(P = #person{}) -> Alias = P, Alias."))),
+    ?assertEqual([], record_hints("f(P) -> Updated = P#person{age = 42}, Age = P#person.age, {Updated, Age}." )).
+
+record_conflicts_and_scopes_test() ->
+    ?assertEqual([], record_hints("f() -> A = unknown(), B = A, A#person.age, B#animal.age.")),
+    ?assertEqual([], record_hints("f() -> X = unknown(), F = fun(X) -> X#person.age end, {X,F}.")),
+    ?assertEqual([], record_hints("f() -> X = unknown(), case X of #person{} -> X; _ -> no end.")),
+    ?assertEqual([], record_hints("f() -> X = unknown(), [X#person.age || X <- xs()], X.")),
+    ?assertEqual([], record_hints("f(a) -> X = unknown(), X; f(b) -> X = #person{}, X." )).
+
+record_return_specs_test() ->
+    ?assertEqual([<<"P">>], hint_names(record_hints(
+        "-spec birthday(term()) -> #person{}. birthday(X) -> X. new() -> P = birthday(1), P."))),
+    ?assertEqual([<<"P">>], hint_names(record_hints(
+        "-spec make(integer()) -> #person{}; (atom()) -> #person{}. make(X) -> X. new() -> P = make(1), P."))),
+    ?assertEqual([], record_hints(
+        "-spec make(integer()) -> #person{}; (atom()) -> #animal{}. make(X) -> X. new() -> P = make(1), P.")),
+    ?assertEqual([], record_hints(
+        "-spec make() -> #person{} | undefined. make() -> undefined. new() -> P = make(), P.")),
+    ?assertEqual([], record_hints(
+        "-spec make() -> #person{}. make() -> ok. new() -> P = other:make(), P.")),
+    ?assertEqual([], record_hints(
+        "-spec make() -> #person{}. make() -> ok. new() -> P = make(1), P.")),
+    ?assertEqual([], record_hints(
+        "-spec make() -> #person{}. make() -> ok. new() -> P = make(), P#animal.age." )).
+
+record_quoted_unicode_locations_test() ->
+    [H] = record_hints("% 😀\nf() -> P = unknown(), P#'a b'.age, P."),
+    ?assertEqual(<<"#'a b'{}">>, maps:get(<<"type">>, H)),
+    ?assertEqual(#{<<"line">> => 1, <<"character">> => 8}, maps:get(<<"position">>, H)).

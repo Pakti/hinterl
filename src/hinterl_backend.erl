@@ -36,7 +36,7 @@ analyze(Source) when is_binary(Source) ->
 
 invalid(Message) ->
     #{<<"status">> => <<"invalid">>, <<"message">> => Message,
-      <<"functions">> => [], <<"specs">> => []}.
+      <<"functions">> => [], <<"specs">> => [], <<"record_hints">> => []}.
 
 analyze_tokens(Tokens) ->
     Forms = split_forms(Tokens, [], []),
@@ -75,7 +75,8 @@ result(Parsed) ->
     Functions = [function(F, Ts, Specs)
                  || {F = {function, _, _, _, _}, Ts} <- Parsed],
     #{<<"status">> => <<"ok">>, <<"functions">> => Functions,
-      <<"specs">> => Specs}.
+      <<"specs">> => Specs,
+      <<"record_hints">> => hinterl_records:analyze([F || {F, _} <- Parsed])}.
 
 identity(Name, Arity) -> #{<<"name">> => atom_to_binary(Name), <<"arity">> => Arity}.
 

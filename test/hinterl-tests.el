@@ -172,3 +172,30 @@
       (fundamental-mode)
       (should-not (process-live-p process))
       (should-not hinterl--overlays))))
+
+(ert-deftest hinterl-local-record-hints-and-option ()
+  (hinterl-test--buffer "new() -> P = #person{}, Alias = P, Older = birthday(Alias), Older#person.age."
+    (should (= 2 (length (hinterl-test--hints))))
+    (dolist (o (hinterl-test--hints))
+      (should (string-match-p "not a verified type" (overlay-get o 'help-echo)))
+      (save-excursion
+        (goto-char (overlay-start o))
+        (should (looking-at " ="))))
+    (let ((hinterl-record-hints nil))
+      (hinterl-refresh)
+      (hinterl-test--wait (lambda () (equal hinterl--status "ok")))
+      (should-not hinterl--overlays))))
+
+(ert-deftest hinterl-local-record-edit-clears-stale ()
+  (hinterl-test--buffer "f() -> P = unknown(), P#person.age."
+    (should (= 1 (length (hinterl-test--hints))))
+    (let ((old hinterl--analysis))
+      (goto-char (point-min))
+      (search-forward "person")
+      (replace-match "animal")
+      (hinterl--accept old)
+      (should-not hinterl--overlays)
+      (hinterl-refresh)
+      (hinterl-test--wait (lambda () (equal hinterl--status "ok")))
+      (should (equal " :: #animal{}" (substring-no-properties
+                    (overlay-get (car (hinterl-test--hints)) 'after-string)))))))

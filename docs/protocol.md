@@ -40,6 +40,7 @@ The request above produces this shape (whitespace shown for readability):
   "id": 7,
   "version": 42,
   "status": "ok",
+  "record_hints": [],
   "specs": [{
     "name": "f", "arity": 1,
     "location": {"line": 1, "character": 1},
@@ -103,7 +104,7 @@ protocol character and two UTF-16 units. Line feeds start a new line.
 
 A valid `analyze` request with incomplete or unsupported buffer syntax returns the
 same `protocol`, `id`, and `version`, `status: "invalid"`, a human-readable
-`message`, and empty `functions` and `specs` arrays. Conditional
+`message`, and empty `functions`, `specs`, and `record_hints` arrays. Conditional
 compilation is also invalid for buffer-only analysis. Discard all decorations for
 that version. Do not use the last successful result. New successful snapshots
 recover without restarting the backend.
@@ -114,6 +115,37 @@ associated decorations, and surface an error rather than applying data. A
 malformed request does not terminate the server. EOF and transport failure should
 remove decorations; a new process starts a new session.
 
-V1 does not expand macros, open includes, execute Erlang, infer types, resolve
+V1 does not expand macros, open includes, execute Erlang, perform general type inference, resolve
 project settings, or choose active conditional branches. Error messages are for
 people, not stable machine-readable error codes.
+
+## Local record hints
+
+Successful responses additionally contain `record_hints`, a list of independent
+binding decorations. Older clients may ignore this additive field. For example:
+
+```json
+{
+  "variable": "Older",
+  "position": {"line": 3, "character": 9},
+  "type": "#person{}",
+  "evidence": [
+    {"kind": "record access", "location": {"line": 4, "character": 14}}
+  ]
+}
+```
+
+`position` is immediately after the binding variable, in the same Unicode scalar
+coordinate convention. `type` is display text, including quoting for record names.
+Evidence kinds describe record construction/patterns, access, updates, or a
+same-buffer return spec. Evidence locations identify the originating AST expression
+or match; an alias inherits its connected variables' evidence. Consumers should
+show that these are associations, not verified types, and retain specs as the
+authority. No unknown-type placeholder is returned.
+
+Conflicting records suppress the entire alias component. Clauses are isolated;
+ambiguous control flow and nested scopes cause local record hints for that clause
+to be skipped. First simple top-level bindings are candidates, with redundant
+constructor/update hints suppressed. Return-spec evidence requires a defined local
+function and agreement on the same direct record across all alternatives; remote
+calls, union returns, aliases, and type-variable substitution are not resolved.

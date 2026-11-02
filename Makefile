@@ -4,9 +4,9 @@ EMACS ?= emacs
 ERLANG_EMACS_DIR ?= $(shell $(ERL) +S 2:2 -noshell -eval 'io:format("~s/emacs", [code:lib_dir(tools)]), halt().')
 
 .PHONY: all test test-backend test-emacs clean
-all: _build/hinterl_backend.beam
+all: _build/hinterl_backend.beam _build/hinterl_records.beam
 
-_build/hinterl_backend.beam: src/hinterl_backend.erl
+_build/%.beam: src/%.erl
 	mkdir -p _build
 	$(ERLC) -Werror +debug_info -o _build $<
 
