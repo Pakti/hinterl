@@ -164,7 +164,7 @@ use `hinterl-refresh`, or make an edit, to start a fresh process.
 When parsing, rendering, or the backend fails, the last decorations remain and may
 be stale. The `Hinterl` mode-line indicator uses `hinterl-mode-line-error-face`
 (inherits `error`); hover it to see the same message as `hinterl-status`. In the error state, the tooltip additionally
-says "Click to switch to the Hinterl backend log"; mouse-1 opens
+says "Click to switch to the backend log"; mouse-1 opens
 `*Hinterl backend errors*` via `hinterl-show-backend-log`. Healthy indicators have
 no custom mouse binding. A successful
 analysis replaces the decorations and restores the normal indicator. Navigation

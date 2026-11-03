@@ -112,7 +112,7 @@ Run `hinterl-refresh' after changing this option."
         'face (when hinterl--failed 'hinterl-mode-line-error-face)
         'help-echo (concat (format "Hinterl: %s" hinterl--status)
                            (when hinterl--failed
-                             "\nClick to switch to the Hinterl backend log"))
+                             "\nClick to switch to the backend log"))
         'mouse-face 'mode-line-highlight
         'local-map (when hinterl--failed hinterl--error-mode-line-map)))
 

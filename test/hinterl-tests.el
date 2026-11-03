@@ -293,7 +293,7 @@
       (should (equal previous hinterl--overlays))
       (should (eq 'hinterl-mode-line-error-face
                   (plist-get (cddr (hinterl--lighter)) 'face)))
-      (should (equal "Hinterl: Parsing failed\nClick to switch to the Hinterl backend log"
+      (should (equal "Hinterl: Parsing failed\nClick to switch to the backend log"
                      (plist-get (cddr (hinterl--lighter)) 'help-echo)))
       ;; A rendering error after producing partial overlays rolls back fully.
       (let ((broken (copy-tree valid)))
@@ -335,7 +335,7 @@
          (properties (cddr lighter)))
     (should (eq :propertize (car lighter)))
     (should (equal " Hinterl" (cadr lighter)))
-    (should (equal "Hinterl: Parsing failed\nClick to switch to the Hinterl backend log" (plist-get properties 'help-echo)))
+    (should (equal "Hinterl: Parsing failed\nClick to switch to the backend log" (plist-get properties 'help-echo)))
     (should (eq 'mode-line-highlight (plist-get properties 'mouse-face)))
     (should (eq #'hinterl-show-backend-log
                 (lookup-key (plist-get properties 'local-map) [mode-line mouse-1])))
