@@ -28,7 +28,8 @@ a future client can multiplex documents if it maintains its own request routing.
 A client must apply a response only if its ID is the latest requested ID for that
 document, its version is still current, and the response belongs to the current
 process/session. Reusing a version after edits or accepting output from an old
-process can produce stale hints. Remove old decorations immediately on an edit.
+process can produce stale hints. Emacs retains existing overlays across edits
+and failures, but only applies new replies after these version checks.
 
 ## Successful response
 
@@ -107,15 +108,16 @@ protocol character and two UTF-16 units. Line feeds start a new line.
 A valid `analyze` request with incomplete or unsupported buffer syntax returns the
 same `protocol`, `id`, and `version`, `status: "invalid"`, a human-readable
 `message`, and empty `functions`, `specs`, `record_hints`, and `record_accesses` arrays. Conditional
-compilation is also invalid for buffer-only analysis. Discard all decorations for
-that version. Do not use the last successful result. New successful snapshots
-recover without restarting the backend.
+compilation is also invalid for buffer-only analysis. Emacs retains previous
+decorations (potentially stale), marks its mode-line indicator with an error face,
+and exposes the message on hover. New successful snapshots replace decorations
+and reset the indicator without restarting the backend.
 
 Malformed JSON or an unsupported request produces `status: "error"` and a
-`message`. These protocol errors may lack routing metadata; log them, clear
-associated decorations, and surface an error rather than applying data. A
-malformed request does not terminate the server. EOF and transport failure should
-remove decorations; a new process starts a new session.
+`message`. These protocol errors may lack routing metadata; surface an error rather than applying data. Emacs retains existing
+decorations and marks its mode-line indicator. A
+malformed request does not terminate the server. EOF and transport failure also retain existing Emacs decorations with an error
+indicator; a new process starts a new session.
 
 V1 does not expand macros, open includes, execute Erlang, perform general type inference, resolve
 project settings, or choose active conditional branches. Error messages are for

@@ -30,9 +30,9 @@ analyze(Source) when is_binary(Source) ->
         true = is_list(Chars),
         case erl_scan:string(Chars, {1, 1}, [text]) of
             {ok, Tokens, _} -> analyze_tokens(Tokens);
-            {error, _, _} -> invalid(<<"Scanning failed; decorations cleared">>)
+            {error, _, _} -> invalid(<<"Scanning failed">>)
         end
-    catch _:_ -> invalid(<<"Analysis failed; decorations cleared">>) end.
+    catch _:_ -> invalid(<<"Analysis failed">>) end.
 
 invalid(Message) ->
     #{<<"status">> => <<"invalid">>, <<"message">> => Message,
@@ -43,10 +43,10 @@ analyze_tokens(Tokens) ->
     %% Preprocessor conditionals cannot be evaluated from a buffer. In particular,
     %% do not merge mutually exclusive specs/functions.
     case lists:any(fun conditional/1, Forms) of
-        true -> invalid(<<"Conditional compilation is unresolved; decorations cleared">>);
+        true -> invalid(<<"Conditional compilation is unresolved">>);
         false ->
             case parse_forms(Forms, []) of
-                error -> invalid(<<"Parsing failed (possibly unresolved macros); decorations cleared">>);
+                error -> invalid(<<"Parsing failed (possibly unresolved macros)">>);
                 {ok, Parsed} -> result(Parsed)
             end
     end.

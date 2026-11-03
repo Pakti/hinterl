@@ -60,6 +60,12 @@ Run `hinterl-refresh' after changing this option."
   "Face for virtual argument and return types."
   :group 'hinterl)
 
+(defface hinterl-mode-line-error-face
+  '((t (:inherit error)))
+  "Face for the Hinterl mode-line indicator after an analysis failure."
+  :group 'hinterl)
+
+(defvar-local hinterl--failed nil)
 (defvar-local hinterl--process nil)
 (defvar-local hinterl--timer nil)
 (defvar-local hinterl--overlays nil)
@@ -82,11 +88,23 @@ Run `hinterl-refresh' after changing this option."
   (when (timerp hinterl--timer) (cancel-timer hinterl--timer))
   (setq hinterl--timer nil))
 
+(defun hinterl--set-status (status &optional outcome)
+  (setq hinterl--status status)
+  (cond ((eq outcome 'error) (setq hinterl--failed t))
+        ((eq outcome 'success) (setq hinterl--failed nil)))
+  (force-mode-line-update))
+
+(defun hinterl--lighter ()
+  (propertize " Hinterl"
+              'face (when hinterl--failed 'hinterl-mode-line-error-face)
+              'help-echo (format "Hinterl: %s" hinterl--status)))
+
 (defun hinterl--changed (&rest _)
-  ;; Never leave decorations from the previous version visible during debounce.
-  (hinterl--clear)
+  ;; Overlays track edits until a successful replacement is available. Cached
+  ;; absolute navigation positions, however, are no longer safe after an edit.
+  (setq hinterl--analysis nil)
   (hinterl--cancel-timer)
-  (setq hinterl--status "pending")
+  (hinterl--set-status "pending; retaining previous decorations")
   (setq hinterl--timer
         (run-with-idle-timer hinterl-idle-delay nil
                              #'hinterl--idle-refresh (current-buffer))))
@@ -116,8 +134,7 @@ Run `hinterl-refresh' after changing this option."
                                     (buffer-live-p buffer))
                            (with-current-buffer buffer
                              (when (eq process hinterl--process)
-                               (hinterl--clear)
-                               (setq hinterl--status "backend stopped"))))))))))
+                               (hinterl--set-status "backend stopped" 'error))))))))))
 
 (defun hinterl--filter (process output)
   "Decode complete JSON lines from PROCESS, retaining partial OUTPUT."
@@ -131,8 +148,7 @@ Run `hinterl-refresh' after changing this option."
              (json-parse-string line :object-type 'alist :array-type 'list
                                 :null-object nil :false-object nil))
           (error
-           (hinterl--clear)
-           (setq hinterl--status (format "protocol error: %s" (error-message-string err)))))))
+           (hinterl--set-status (format "protocol error: %s" (error-message-string err)) 'error)))))
     (process-put process 'hinterl-pending pending)))
 
 (defun hinterl-refresh ()
@@ -144,8 +160,8 @@ Run `hinterl-refresh' after changing this option."
       (progn
         (hinterl--start)
         (cl-incf hinterl--sequence)
-        (setq hinterl--requested-version (buffer-chars-modified-tick)
-              hinterl--status "analyzing")
+        (setq hinterl--requested-version (buffer-chars-modified-tick))
+        (hinterl--set-status "analyzing")
         (save-restriction
           (widen)
           (process-send-string
@@ -157,8 +173,7 @@ Run `hinterl-refresh' after changing this option."
                (source . ,(buffer-substring-no-properties (point-min) (point-max)))))
             "\n"))))
     (error
-     (hinterl--clear)
-     (setq hinterl--status (format "backend error: %s" (error-message-string err)))
+     (hinterl--set-status (format "backend error: %s" (error-message-string err)) 'error)
      (message "Hinterl: %s" hinterl--status))))
 
 (defun hinterl--position (position)
@@ -241,22 +256,33 @@ Run `hinterl-refresh' after changing this option."
 
 (defun hinterl--accept (response)
   "Apply RESPONSE only to the exact buffer version and most recent request."
+  (when (and hinterl-mode (equal (hinterl--get "status" response) "error")
+             (null (hinterl--get "id" response)))
+    (hinterl--set-status (or (hinterl--get "message" response) "protocol error") 'error))
   (when (and hinterl-mode
              (equal (hinterl--get "protocol" response) 1)
              (equal (hinterl--get "id" response) hinterl--sequence)
              (equal (hinterl--get "version" response) hinterl--requested-version)
              (equal hinterl--requested-version (buffer-chars-modified-tick)))
-    (hinterl--clear)
-    (setq hinterl--status (or (hinterl--get "message" response)
-                             (hinterl--get "status" response)))
-    (when (equal (hinterl--get "status" response) "ok")
-      (save-restriction
-        (widen)
-        (condition-case err
-            (progn (hinterl--render response) (setq hinterl--analysis response))
-          (error
-           (hinterl--clear)
-           (setq hinterl--status (format "invalid response: %s" (error-message-string err)))))))))
+    (if (not (equal (hinterl--get "status" response) "ok"))
+        (hinterl--set-status (or (hinterl--get "message" response)
+                                (hinterl--get "status" response) "analysis failed") 'error)
+      ;; Build a replacement transactionally. A malformed response must not
+      ;; discard the previous overlays or leave half-rendered new decorations.
+      (let ((previous hinterl--overlays))
+        (setq hinterl--overlays nil)
+        (save-restriction
+          (widen)
+          (condition-case err
+              (progn
+                (hinterl--render response)
+                (mapc #'delete-overlay previous)
+                (setq hinterl--analysis response)
+                (hinterl--set-status (or (hinterl--get "message" response) "ok") 'success))
+            (error
+             (mapc #'delete-overlay hinterl--overlays)
+             (setq hinterl--overlays previous)
+             (hinterl--set-status (format "invalid response: %s" (error-message-string err)) 'error))))))))
 
 (defun hinterl-jump-to-spec ()
   "Jump to the current function's authoritative spec."
@@ -294,7 +320,7 @@ Run `hinterl-refresh' after changing this option."
 (define-minor-mode hinterl-mode
   "Show spec types without modifying Erlang text.
 Signatures map to clauses by convention, not inference; see README for details."
-  :lighter " Hinterl" :group 'hinterl
+  :lighter (:eval (hinterl--lighter)) :group 'hinterl
   (if hinterl-mode
       (if (not (derived-mode-p 'erlang-mode))
           (progn (setq hinterl-mode nil)

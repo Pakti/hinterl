@@ -155,24 +155,30 @@ It returns function identities, clause/argument ranges, spec alternatives, type
 text. Emacs owns overlays, faces, scheduling, and navigation.
 See [the editor-independent protocol](docs/protocol.md) for a future VS Code client.
 
-Every edit immediately removes old overlays, then schedules idle analysis. Replies
+Edits retain existing overlays while scheduling idle analysis. Replies
 must match both the latest request ID and the exact buffer modification tick.
 Partial JSON lines are buffered. Killing the buffer, changing major mode, or
 disabling Hinterl removes overlays and stops its process. After a backend exit,
 use `hinterl-refresh`, or make an edit, to start a fresh process.
 
+When parsing, rendering, or the backend fails, the last decorations remain and may
+be stale. The `Hinterl` mode-line indicator uses `hinterl-mode-line-error-face`
+(inherits `error`); hover it to see the same message as `hinterl-status`. A successful
+analysis replaces the decorations and restores the normal indicator. Navigation
+from cached analysis is disabled after edits until fresh analysis succeeds.
+
 This is **buffer parsing, not project preprocessing**. No code is compiled or run
 by analysis; includes are not read, macros are not expanded, and conditional
 branches are not selected. The initial conservative policy is:
 
-- An incomplete form or other scan/parse error clears all
-  decorations for the buffer. A subsequent successful parse restores them.
+- An incomplete form or other scan/parse error retains previous decorations and
+  marks the mode-line indicator as failed until analysis succeeds.
 - Complete `-define` forms are skipped without macro expansion, so unused macro
   definitions do not prevent hints elsewhere. Complete forms with unresolved
   macro usages are omitted in full (including every clause of an affected
   function); independently parsed functions retain hints. Incomplete definitions
-  and incomplete forms still clear decorations.
-- Conditional compilation clears all decorations, even if both branches parse.
+  and incomplete forms still fail analysis, retaining previous decorations.
+- Conditional compilation fails analysis, even if both branches parse.
 - An include keeps locally parsed type hints; included files are not analyzed.
 - Module-qualified spec declarations are returned as data, but are not guessed
   to describe local functions.
