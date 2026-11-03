@@ -328,7 +328,7 @@
       (should-not hinterl--failed)
       (should hinterl--overlays))))
 
-(ert-deftest hinterl-mode-line-tooltip-and-click-map ()
+(ert-deftest hinterl-mode-line-tooltip-without-click-map ()
   (let* ((hinterl--status "Parsing failed")
          (hinterl--failed t)
          (lighter (hinterl--lighter))
@@ -337,22 +337,4 @@
     (should (equal " Hinterl" (cadr lighter)))
     (should (equal "Hinterl: Parsing failed" (plist-get properties 'help-echo)))
     (should (eq 'mode-line-highlight (plist-get properties 'mouse-face)))
-    (should (eq #'hinterl--mode-line-status
-                (lookup-key (plist-get properties 'local-map) [mode-line mouse-1])))))
-
-(ert-deftest hinterl-mode-line-click-uses-clicked-buffer ()
-  (let* ((window (selected-window))
-         (original (window-buffer window))
-         (target (generate-new-buffer " *hinterl-click-test*"))
-         reported)
-    (unwind-protect
-        (progn
-          (set-window-buffer window target)
-          (with-temp-buffer
-            (cl-letf (((symbol-function 'hinterl-status)
-                       (lambda () (setq reported (current-buffer)))))
-              (hinterl--mode-line-status
-               (list 'mouse-1 (list window 'mode-line '(0 . 0) 0)))))
-          (should (eq target reported)))
-      (set-window-buffer window original)
-      (kill-buffer target))))
+    (should-not (plist-get properties 'local-map))))

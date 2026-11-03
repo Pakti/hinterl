@@ -163,8 +163,7 @@ use `hinterl-refresh`, or make an edit, to start a fresh process.
 
 When parsing, rendering, or the backend fails, the last decorations remain and may
 be stale. The `Hinterl` mode-line indicator uses `hinterl-mode-line-error-face`
-(inherits `error`); hover it to see the same message as `hinterl-status`, or
-click mouse-1 to show that message in the echo area. A successful
+(inherits `error`); hover it to see the same message as `hinterl-status`. A successful
 analysis replaces the decorations and restores the normal indicator. Navigation
 from cached analysis is disabled after edits until fresh analysis succeeds.
 

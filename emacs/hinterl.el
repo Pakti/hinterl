@@ -94,28 +94,13 @@ Run `hinterl-refresh' after changing this option."
         ((eq outcome 'success) (setq hinterl--failed nil)))
   (force-mode-line-update))
 
-(defun hinterl--mode-line-status (event)
-  "Show status for the buffer whose mode line received mouse EVENT."
-  (interactive "e")
-  (let ((window (posn-window (event-start event))))
-    (when (windowp window)
-      (with-current-buffer (window-buffer window)
-        (hinterl-status)))))
-
-(defvar hinterl--mode-line-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map [mode-line mouse-1] #'hinterl--mode-line-status)
-    map)
-  "Mouse bindings for the Hinterl mode-line indicator.")
-
 (defun hinterl--lighter ()
   ;; A :propertize construct overrides mode-line-modes' enclosing minor-mode
   ;; tooltip/map. Properties on a returned string alone are overridden by it.
   (list :propertize " Hinterl"
         'face (when hinterl--failed 'hinterl-mode-line-error-face)
         'help-echo (format "Hinterl: %s" hinterl--status)
-        'mouse-face 'mode-line-highlight
-        'local-map hinterl--mode-line-map))
+        'mouse-face 'mode-line-highlight))
 
 (defun hinterl--changed (&rest _)
   ;; Overlays track edits until a successful replacement is available. Cached
