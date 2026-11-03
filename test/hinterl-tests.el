@@ -293,7 +293,7 @@
       (should (equal previous hinterl--overlays))
       (should (eq 'hinterl-mode-line-error-face
                   (plist-get (cddr (hinterl--lighter)) 'face)))
-      (should (equal "Hinterl: Parsing failed"
+      (should (equal "Hinterl: Parsing failed\nClick to switch to the Hinterl backend log"
                      (plist-get (cddr (hinterl--lighter)) 'help-echo)))
       ;; A rendering error after producing partial overlays rolls back fully.
       (let ((broken (copy-tree valid)))
@@ -328,13 +328,25 @@
       (should-not hinterl--failed)
       (should hinterl--overlays))))
 
-(ert-deftest hinterl-mode-line-tooltip-without-click-map ()
+(ert-deftest hinterl-error-mode-line-tooltip-and-log-binding ()
   (let* ((hinterl--status "Parsing failed")
          (hinterl--failed t)
          (lighter (hinterl--lighter))
          (properties (cddr lighter)))
     (should (eq :propertize (car lighter)))
     (should (equal " Hinterl" (cadr lighter)))
-    (should (equal "Hinterl: Parsing failed" (plist-get properties 'help-echo)))
+    (should (equal "Hinterl: Parsing failed\nClick to switch to the Hinterl backend log" (plist-get properties 'help-echo)))
     (should (eq 'mode-line-highlight (plist-get properties 'mouse-face)))
+    (should (eq #'hinterl-show-backend-log
+                (lookup-key (plist-get properties 'local-map) [mode-line mouse-1])))
+    (save-window-excursion
+      (call-interactively
+       (lookup-key (plist-get properties 'local-map) [mode-line mouse-1]))
+      (should (equal "*Hinterl backend errors*" (buffer-name))))))
+
+(ert-deftest hinterl-healthy-mode-line-has-no-click-binding ()
+  (let* ((hinterl--failed nil)
+         (hinterl--status "ok")
+         (properties (cddr (hinterl--lighter))))
+    (should (equal "Hinterl: ok" (plist-get properties 'help-echo)))
     (should-not (plist-get properties 'local-map))))

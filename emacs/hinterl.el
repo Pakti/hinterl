@@ -94,13 +94,27 @@ Run `hinterl-refresh' after changing this option."
         ((eq outcome 'success) (setq hinterl--failed nil)))
   (force-mode-line-update))
 
+(defun hinterl-show-backend-log ()
+  "Switch to the Hinterl backend error log."
+  (interactive)
+  (pop-to-buffer (get-buffer-create "*Hinterl backend errors*")))
+
+(defvar hinterl--error-mode-line-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [mode-line mouse-1] #'hinterl-show-backend-log)
+    map)
+  "Mouse bindings for Hinterl's error-state mode-line indicator.")
+
 (defun hinterl--lighter ()
   ;; A :propertize construct overrides mode-line-modes' enclosing minor-mode
   ;; tooltip/map. Properties on a returned string alone are overridden by it.
   (list :propertize " Hinterl"
         'face (when hinterl--failed 'hinterl-mode-line-error-face)
-        'help-echo (format "Hinterl: %s" hinterl--status)
-        'mouse-face 'mode-line-highlight))
+        'help-echo (concat (format "Hinterl: %s" hinterl--status)
+                           (when hinterl--failed
+                             "\nClick to switch to the Hinterl backend log"))
+        'mouse-face 'mode-line-highlight
+        'local-map (when hinterl--failed hinterl--error-mode-line-map)))
 
 (defun hinterl--changed (&rest _)
   ;; Overlays track edits until a successful replacement is available. Cached
