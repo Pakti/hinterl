@@ -292,9 +292,9 @@
                         (status . "invalid") (message . "Parsing failed")))
       (should (equal previous hinterl--overlays))
       (should (eq 'hinterl-mode-line-error-face
-                  (get-text-property 0 'face (hinterl--lighter))))
+                  (plist-get (cddr (hinterl--lighter)) 'face)))
       (should (equal "Hinterl: Parsing failed"
-                     (get-text-property 0 'help-echo (hinterl--lighter))))
+                     (plist-get (cddr (hinterl--lighter)) 'help-echo)))
       ;; A rendering error after producing partial overlays rolls back fully.
       (let ((broken (copy-tree valid)))
         (setf (alist-get 'record_hints broken)
@@ -309,8 +309,8 @@
       (hinterl--accept valid)
       (should hinterl--overlays)
       (should-not hinterl--failed)
-      (should-not (get-text-property 0 'face (hinterl--lighter)))
-      (should (equal "Hinterl: ok" (get-text-property 0 'help-echo (hinterl--lighter)))))))
+      (should-not (plist-get (cddr (hinterl--lighter)) 'face))
+      (should (equal "Hinterl: ok" (plist-get (cddr (hinterl--lighter)) 'help-echo))))))
 
 (ert-deftest hinterl-backend-exit-retains-decorations ()
   (hinterl-test--buffer "-spec f() -> ok. f() -> ok."
@@ -327,3 +327,32 @@
       (hinterl-test--wait (lambda () (equal hinterl--status "ok")))
       (should-not hinterl--failed)
       (should hinterl--overlays))))
+
+(ert-deftest hinterl-mode-line-tooltip-and-click-map ()
+  (let* ((hinterl--status "Parsing failed")
+         (hinterl--failed t)
+         (lighter (hinterl--lighter))
+         (properties (cddr lighter)))
+    (should (eq :propertize (car lighter)))
+    (should (equal " Hinterl" (cadr lighter)))
+    (should (equal "Hinterl: Parsing failed" (plist-get properties 'help-echo)))
+    (should (eq 'mode-line-highlight (plist-get properties 'mouse-face)))
+    (should (eq #'hinterl--mode-line-status
+                (lookup-key (plist-get properties 'local-map) [mode-line mouse-1])))))
+
+(ert-deftest hinterl-mode-line-click-uses-clicked-buffer ()
+  (let* ((window (selected-window))
+         (original (window-buffer window))
+         (target (generate-new-buffer " *hinterl-click-test*"))
+         reported)
+    (unwind-protect
+        (progn
+          (set-window-buffer window target)
+          (with-temp-buffer
+            (cl-letf (((symbol-function 'hinterl-status)
+                       (lambda () (setq reported (current-buffer)))))
+              (hinterl--mode-line-status
+               (list 'mouse-1 (list window 'mode-line '(0 . 0) 0)))))
+          (should (eq target reported)))
+      (set-window-buffer window original)
+      (kill-buffer target))))
