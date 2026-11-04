@@ -352,7 +352,7 @@ text. Partially selected collapsed accesses retain their selected source text."
       (push (buffer-substring-no-properties cursor end) chunks)
       (apply #'concat (nreverse chunks)))))
 
-(defun hinterl-copy-with-hints (beg end)
+(defun hinterl-copy-region (beg end)
   "Copy the active region including Hinterl hints.
 The result is plain text in the kill ring and clipboard, subject to Emacs's
 clipboard settings. Record reads are copied as currently displayed. Source
@@ -365,13 +365,13 @@ Hinterl is reporting a failure."
   (kill-new (hinterl--text-with-hints beg end))
   (message "Copied text with Hinterl hints"))
 
-(defun hinterl-copy-buffer-with-hints ()
+(defun hinterl-copy-buffer ()
   "Copy the entire buffer including current Hinterl hints.
 Includes text outside narrowing. Does not require or change the active region."
   (interactive)
   (save-restriction
     (widen)
-    (hinterl-copy-with-hints (point-min) (point-max))))
+    (hinterl-copy-region (point-min) (point-max))))
 
 (defun hinterl-status ()
   "Show analysis or backend status for the current buffer."
