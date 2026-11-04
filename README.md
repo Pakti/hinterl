@@ -64,6 +64,11 @@ Useful commands:
 - `hinterl-refresh`: analyze immediately, restarting a stopped backend if needed.
 - `hinterl-jump-to-spec`: navigate from a clause to its authoritative spec.
 - `hinterl-status`: show parsing/protocol/backend status.
+- `hinterl-copy-with-hints`: copy the active region, or the entire buffer when no
+  region is active, as plain text including current inlay hints and collapsed
+  record reads. Uses the kill ring and normal Emacs clipboard integration.
+  Source is unchanged. Partial selections of collapsed syntax copy the selected
+  source characters; in an error state, retained decorations may be stale.
 - `customize-group` → `hinterl`: set faces, backend command, and idle delay
   (default 0.3 seconds).
 

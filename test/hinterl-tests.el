@@ -350,3 +350,48 @@
          (properties (cddr (hinterl--lighter))))
     (should (equal "Hinterl: ok" (plist-get properties 'help-echo)))
     (should-not (plist-get properties 'local-map))))
+
+(ert-deftest hinterl-copy-whole-buffer-with-hints ()
+  (let ((source "-spec f(integer()) -> atom().\nf(X) -> ok.")
+        (kill-ring nil) (interprogram-cut-function nil))
+    (hinterl-test--buffer source
+      (let ((tick (buffer-chars-modified-tick))
+            (modified (buffer-modified-p)))
+        (call-interactively #'hinterl-copy-with-hints)
+        (should (equal "-spec f(integer()) -> atom().\nf(X :: integer()) :: atom() -> ok."
+                       (car kill-ring)))
+        (should-not (text-properties-at 0 (car kill-ring)))
+        (should (equal source (buffer-string)))
+        (should (= tick (buffer-chars-modified-tick)))
+        (should (eq modified (buffer-modified-p)))))))
+
+(ert-deftest hinterl-copy-region-boundary-hints ()
+  (let ((kill-ring nil) (interprogram-cut-function nil) (transient-mark-mode t))
+    (hinterl-test--buffer "-spec f(integer()) -> atom().\nf(X) -> ok."
+      (goto-char (point-min))
+      (search-forward "f(X")
+      (let ((end (point)))
+        (set-mark (1- end))
+        (setq mark-active t)
+        (call-interactively #'hinterl-copy-with-hints)
+        (should (equal "X :: integer()" (car kill-ring)))
+        (should (equal ") :: atom()" (hinterl--text-with-hints end (1+ end))))))))
+
+(ert-deftest hinterl-copy-collapsed-and-revealed-record-access ()
+  (hinterl-test--buffer "f(P) -> P#'å'.age."
+    (should (equal "f(P) -> P.age." (hinterl--text-with-hints (point-min) (point-max))))
+    (goto-char (point-min))
+    (search-forward "#")
+    (let ((start (1- (point))))
+      ;; Do not substitute an entire dot for a partial source selection.
+      (should (equal "#'" (hinterl--text-with-hints start (+ start 2)))))
+    (run-hooks 'post-command-hook)
+    (should (equal (buffer-string) (hinterl--text-with-hints (point-min) (point-max))))))
+
+(ert-deftest hinterl-copy-whole-buffer-when-narrowed ()
+  (let ((kill-ring nil) (interprogram-cut-function nil))
+    (hinterl-test--buffer "-spec f() -> ok.\nf() -> ok."
+      (goto-char (point-max))
+      (narrow-to-region (line-beginning-position) (point-max))
+      (call-interactively #'hinterl-copy-with-hints)
+      (should (equal "-spec f() -> ok.\nf() :: ok -> ok." (car kill-ring))))))

@@ -320,6 +320,51 @@ Run `hinterl-refresh' after changing this option."
       (push-mark)
       (goto-char (hinterl--position (hinterl--get "location" target))))))
 
+(defun hinterl--text-with-hints (beg end)
+  "Return plain text from BEG to END with current Hinterl decorations.
+A hint at END belongs to the copied text; a hint at BEG belongs to preceding
+text. Partially selected collapsed accesses retain their selected source text."
+  (save-restriction
+    (widen)
+    (let (edits chunks (cursor beg))
+      (dolist (overlay hinterl--overlays)
+        (when (eq (overlay-buffer overlay) (current-buffer))
+          (let ((start (overlay-start overlay))
+                (finish (overlay-end overlay))
+                (hint (overlay-get overlay 'after-string))
+                (display (overlay-get overlay 'display)))
+            (cond
+             ((and (= start finish) (stringp hint) (< beg start) (<= start end))
+              (push (list start start hint) edits))
+             ((and (< start finish) (<= beg start) (<= finish end)
+                   (overlay-get overlay 'hinterl-record-access) (stringp display))
+              (push (list start finish display) edits))))))
+      (setq edits (sort edits (lambda (a b)
+                               (if (= (car a) (car b))
+                                   (< (cadr a) (cadr b))
+                                 (< (car a) (car b))))))
+      (dolist (edit edits)
+        (pcase-let ((`(,start ,finish ,text) edit))
+          (when (>= start cursor)
+            (push (buffer-substring-no-properties cursor start) chunks)
+            (push (substring-no-properties text) chunks)
+            (setq cursor finish))))
+      (push (buffer-substring-no-properties cursor end) chunks)
+      (apply #'concat (nreverse chunks)))))
+
+(defun hinterl-copy-with-hints (beg end)
+  "Copy the active region, or the entire buffer, including Hinterl hints.
+The result is plain text in the kill ring and clipboard, subject to Emacs's
+clipboard settings. Record reads are copied as currently displayed. Source
+text is never modified. Copies current decorations, which may be stale when
+Hinterl is reporting a failure."
+  (interactive
+   (if (use-region-p)
+       (list (region-beginning) (region-end))
+     (save-restriction (widen) (list (point-min) (point-max)))))
+  (kill-new (hinterl--text-with-hints beg end))
+  (message "Copied text with Hinterl hints"))
+
 (defun hinterl-status ()
   "Show analysis or backend status for the current buffer."
   (interactive)
