@@ -357,7 +357,7 @@
     (hinterl-test--buffer source
       (let ((tick (buffer-chars-modified-tick))
             (modified (buffer-modified-p)))
-        (call-interactively #'hinterl-copy-with-hints)
+        (call-interactively #'hinterl-copy-buffer-with-hints)
         (should (equal "-spec f(integer()) -> atom().\nf(X :: integer()) :: atom() -> ok."
                        (car kill-ring)))
         (should-not (text-properties-at 0 (car kill-ring)))
@@ -393,5 +393,12 @@
     (hinterl-test--buffer "-spec f() -> ok.\nf() -> ok."
       (goto-char (point-max))
       (narrow-to-region (line-beginning-position) (point-max))
-      (call-interactively #'hinterl-copy-with-hints)
+      (call-interactively #'hinterl-copy-buffer-with-hints)
       (should (equal "-spec f() -> ok.\nf() :: ok -> ok." (car kill-ring))))))
+
+(ert-deftest hinterl-copy-region-requires-selection ()
+  (let ((kill-ring '("unchanged")) (interprogram-cut-function nil))
+    (with-temp-buffer
+      (insert "source")
+      (should-error (call-interactively #'hinterl-copy-with-hints) :type 'user-error)
+      (should (equal '("unchanged") kill-ring)))))
