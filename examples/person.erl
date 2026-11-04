@@ -7,7 +7,7 @@
 birthday(P) ->
     P#person{age = P#person.age + 1}.
 
-%% Purely positional: Hinterl does not check the semantic correspondence.
+%% Purely positional: Hinterlang does not check the semantic correspondence.
 -spec choose(integer()) -> atom();
             (atom()) -> integer().
 choose(1) -> one;

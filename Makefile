@@ -4,7 +4,7 @@ EMACS ?= emacs
 ERLANG_EMACS_DIR ?= $(shell $(ERL) +S 2:2 -noshell -eval 'io:format("~s/emacs", [code:lib_dir(tools)]), halt().')
 
 .PHONY: all test test-backend test-emacs clean
-all: _build/hinterl_backend.beam _build/hinterl_records.beam
+all: _build/hinterlang_backend.beam _build/hinterlang_records.beam
 
 _build/%.beam: src/%.erl
 	mkdir -p _build
@@ -13,11 +13,11 @@ _build/%.beam: src/%.erl
 test: test-backend test-emacs
 
 test-backend: all
-	$(ERLC) -Werror -o _build test/hinterl_backend_tests.erl
-	$(ERL) +S 2:2 -noshell -pa _build -eval 'case eunit:test(hinterl_backend_tests, [verbose]) of ok -> halt(0); _ -> halt(1) end.'
+	$(ERLC) -Werror -o _build test/hinterlang_backend_tests.erl
+	$(ERL) +S 2:2 -noshell -pa _build -eval 'case eunit:test(hinterlang_backend_tests, [verbose]) of ok -> halt(0); _ -> halt(1) end.'
 
 test-emacs: all
-	$(EMACS) -Q --batch -L "$(ERLANG_EMACS_DIR)" -L emacs -l test/hinterl-tests.el -f ert-run-tests-batch-and-exit
+	$(EMACS) -Q --batch -L "$(ERLANG_EMACS_DIR)" -L emacs -l test/hinterlang-tests.el -f ert-run-tests-batch-and-exit
 
 clean:
 	rm -rf _build

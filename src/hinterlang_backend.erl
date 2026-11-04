@@ -1,5 +1,5 @@
 %% SPDX-License-Identifier: GPL-3.0-or-later
--module(hinterl_backend).
+-module(hinterlang_backend).
 -export([main/0, analyze/1, request/1]).
 
 main() ->
@@ -104,7 +104,7 @@ result(Parsed) ->
                  || {F = {function, _, _, _, _}, Ts} <- Parsed],
     #{<<"status">> => <<"ok">>, <<"functions">> => Functions,
       <<"specs">> => Specs,
-      <<"record_hints">> => hinterl_records:analyze([F || {F, _} <- Parsed]),
+      <<"record_hints">> => hinterlang_records:analyze([F || {F, _} <- Parsed]),
       <<"record_accesses">> => lists:append([record_accesses(F, Ts) || {F, Ts} <- Parsed])}.
 
 identity(Name, Arity) -> #{<<"name">> => atom_to_binary(Name), <<"arity">> => Arity}.
@@ -127,7 +127,7 @@ alternative({type, _, 'fun', [{type, _, product, Args}, Return]}) ->
 %% erl_pp handles every type AST accepted by erl_parse, including nested funs,
 %% record types, variables, remote types, annotations, and constraints.
 type_text(Type) ->
-    Form = {attribute, 0, type, {hinterl_type, Type, []}},
+    Form = {attribute, 0, type, {hinterlang_type, Type, []}},
     Printed = unicode:characters_to_binary(erl_pp:attribute(Form)),
     [_, Body] = binary:split(Printed, <<"::">>),
     %% Remove the final period/newline, not periods inside the type.

@@ -1,9 +1,9 @@
 %% SPDX-License-Identifier: GPL-3.0-or-later
--module(hinterl_backend_tests).
+-module(hinterlang_backend_tests).
 -include_lib("eunit/include/eunit.hrl").
 
 a(Source) ->
-    R = hinterl_backend:analyze(unicode:characters_to_binary(Source)),
+    R = hinterlang_backend:analyze(unicode:characters_to_binary(Source)),
     ?assertEqual(<<"ok">>, maps:get(<<"status">>, R)),
     R.
 functions(Source) -> maps:get(<<"functions">>, a(Source)).
@@ -77,7 +77,7 @@ zero_arity_test() ->
 
 invalid_and_preprocessing_test_() ->
     [?_test(begin
-        R = hinterl_backend:analyze(unicode:characters_to_binary(Source)),
+        R = hinterlang_backend:analyze(unicode:characters_to_binary(Source)),
         ?assertEqual(<<"invalid">>, maps:get(<<"status">>, R)),
         ?assertEqual([], maps:get(<<"functions">>, R))
     end) || Source <- ["f(X) ->", "f(X) -> X", "f(\"unfinished) -> ok.",
@@ -92,7 +92,7 @@ include_keeps_local_spec_test() ->
 versioned_unsaved_requests_test() ->
     Request = #{<<"protocol">> => 1, <<"id">> => 8, <<"version">> => 19,
                 <<"method">> => <<"analyze">>, <<"source">> => <<"unsaved() -> ok.">>},
-    R = hinterl_backend:request(Request),
+    R = hinterlang_backend:request(Request),
     ?assertEqual(8, maps:get(<<"id">>, R)),
     ?assertEqual(19, maps:get(<<"version">>, R)),
     [F] = maps:get(<<"functions">>, R),
@@ -206,7 +206,7 @@ macro_token_bodies_test() ->
     ?assertEqual(<<"ok">>, maps:get(<<"return">>, alt(hd(clauses(F))))).
 
 incomplete_or_used_macros_test_() ->
-    [?_assertEqual(<<"invalid">>, maps:get(<<"status">>, hinterl_backend:analyze(Source)))
+    [?_assertEqual(<<"invalid">>, maps:get(<<"status">>, hinterlang_backend:analyze(Source)))
      || Source <- [<<"-define(A, 1)">>, <<"-define(A, f(1). f() -> ok.">>,
                    <<"-ifdef(TEST). -define(A, 1). -endif. f() -> ok.">>]].
 
@@ -233,4 +233,4 @@ macro_usage_omits_entire_multiclause_function_test() ->
     ?assertEqual([<<"g">>], [maps:get(<<"name">>, F) || F <- Fs]),
     ?assertEqual([], functions("-spec f() -> ?TYPE. f() -> ?VALUE.")),
     ?assertEqual(<<"invalid">>, maps:get(<<"status">>,
-        hinterl_backend:analyze(<<"f() -> ?VALUE">>))).
+        hinterlang_backend:analyze(<<"f() -> ?VALUE">>))).

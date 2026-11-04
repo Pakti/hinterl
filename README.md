@@ -1,4 +1,4 @@
-# Hinterl
+# Hinterlang
 
 Spec-derived inlay hints for ordinary Erlang, starting with Emacs on Linux.
 It displays decorations without inserting annotations into source, changing saved
@@ -10,13 +10,13 @@ birthday(P) ->
     P#person{}.
 ```
 
-With Hinterl enabled, the clause head appears as:
+With Hinterlang enabled, the clause head appears as:
 
 ```erlang
 birthday(P :: #person{}) :: #person{} ->
 ```
 
-The types use `hinterl-type-face`.
+The types use `hinterlang-type-face`.
 
 ## Linux setup
 
@@ -33,7 +33,7 @@ On Debian versions shipping OTP 27+, the relevant packages are `erlang-base`,
 Check `erl` on your PATH is OTP 27+; older distributions need a newer OTP release.
 
 ```sh
-cd /path/to/hinterl
+cd /path/to/hinterlang
 make
 make test
 ```
@@ -49,37 +49,37 @@ Add this to your Emacs configuration (adapt the checkout path):
 ;; If erlang-mode is not already on load-path:
 ;; (add-to-list 'load-path "/path/to/otp/lib/tools-VERSION/emacs")
 (require 'erlang)
-(add-to-list 'load-path "/path/to/hinterl/emacs")
-(require 'hinterl)
-(add-hook 'erlang-mode-hook #'hinterl-mode)
+(add-to-list 'load-path "/path/to/hinterlang/emacs")
+(require 'hinterlang)
+(add-hook 'erlang-mode-hook #'hinterlang-mode)
 ```
 
-Open an `.erl` buffer, or run `M-x hinterl-mode` in an existing `erlang-mode`
+Open an `.erl` buffer, or run `M-x hinterlang-mode` in an existing `erlang-mode`
 buffer. `examples/person.erl` is a small example. The default backend command
-is `bin/hinterl` in this checkout and requires `erl` on Emacs's `exec-path`.
-Customize `hinterl-backend-command` if you install the backend elsewhere.
+is `bin/hinterlang` in this checkout and requires `erl` on Emacs's `exec-path`.
+Customize `hinterlang-backend-command` if you install the backend elsewhere.
 
 Useful commands:
 
-- `hinterl-refresh`: analyze immediately, restarting a stopped backend if needed.
-- `hinterl-jump-to-spec`: navigate from a clause to its authoritative spec.
-- `hinterl-status`: show parsing/protocol/backend status.
-- `hinterl-copy-region`: copy the active region as plain text including
+- `hinterlang-refresh`: analyze immediately, restarting a stopped backend if needed.
+- `hinterlang-jump-to-spec`: navigate from a clause to its authoritative spec.
+- `hinterlang-status`: show parsing/protocol/backend status.
+- `hinterlang-copy-region`: copy the active region as plain text including
   current inlay hints and collapsed record reads. Fails if no region is active.
-- `hinterl-copy-buffer`: explicitly copy the entire buffer, including
+- `hinterlang-copy-buffer`: explicitly copy the entire buffer, including
   text outside narrowing, with current inlay hints and collapsed record reads. Uses the kill ring and normal Emacs clipboard integration.
   Source is unchanged. Partial selections of collapsed syntax copy the selected
   source characters; in an error state, retained decorations may be stale.
-- `customize-group` → `hinterl`: set faces, backend command, and idle delay
+- `customize-group` → `hinterlang`: set faces, backend command, and idle delay
   (default 0.3 seconds).
 
 Type hints have no hover tooltips. Specs remain visible and authoritative,
-including constraints; use `hinterl-jump-to-spec` to navigate to them.
+including constraints; use `hinterlang-jump-to-spec` to navigate to them.
 
 ## Optional spec dimming
 
-Set `hinterl-dim-specs` to `t` and run `M-x hinterl-refresh` to dim specs using
-`hinterl-spec-face` (inherits `shadow` by default). Customize the face independently
+Set `hinterlang-dim-specs` to `t` and run `M-x hinterlang-refresh` to dim specs using
+`hinterlang-spec-face` (inherits `shadow` by default). Customize the face independently
 of type hints. Dimming is off by default; specs remain visible, editable, and
 unchanged in the source. Multiline and overloaded specs are dimmed in full.
 
@@ -98,9 +98,9 @@ Functions without specs receive no type hints.
 
 ## Local record hints
 
-`hinterl-record-hints` (enabled by default) independently controls record hints at
+`hinterlang-record-hints` (enabled by default) independently controls record hints at
 simple local variable bindings. Change it with Customize and run
-`M-x hinterl-refresh` to update the buffer.
+`M-x hinterlang-refresh` to update the buffer.
 
 For example, the following source:
 
@@ -138,13 +138,13 @@ are not. This is a bounded heuristic, not general type inference or checking.
 
 ## Compact record field access
 
-`hinterl-collapse-record-access` (enabled by default) displays `Older#person.age`
-as `Older.age`. Customize `hinterl-record-access-face` to style the collapsed dot
+`hinterlang-collapse-record-access` (enabled by default) displays `Older#person.age`
+as `Older.age`. Customize `hinterlang-record-access-face` to style the collapsed dot
 (default: inherits `default`). This is an overlay: saving, copying, and compiling still use the
 original Erlang text. Hover the dot to see the full expression, e.g. `Older#person.age`.
 Moving point into the collapsed region temporarily reveals the full syntax for
 editing; moving out collapses it again. Disable the option and run
-`M-x hinterl-refresh` to retain ordinary record reads.
+`M-x hinterlang-refresh` to retain ordinary record reads.
 
 Only parsed record field reads are collapsed, including chained reads and reads
 on expressions. Constructors, record updates, field-index expressions such as
@@ -164,14 +164,14 @@ See [the editor-independent protocol](docs/protocol.md) for a future VS Code cli
 Edits retain existing overlays while scheduling idle analysis. Replies
 must match both the latest request ID and the exact buffer modification tick.
 Partial JSON lines are buffered. Killing the buffer, changing major mode, or
-disabling Hinterl removes overlays and stops its process. After a backend exit,
-use `hinterl-refresh`, or make an edit, to start a fresh process.
+disabling Hinterlang removes overlays and stops its process. After a backend exit,
+use `hinterlang-refresh`, or make an edit, to start a fresh process.
 
 When parsing, rendering, or the backend fails, the last decorations remain and may
-be stale. The `Hinterl` mode-line indicator uses `hinterl-mode-line-error-face`
-(inherits `error`); hover it to see the same message as `hinterl-status`. In the error state, the tooltip additionally
+be stale. The `Hinterl` mode-line indicator uses `hinterlang-mode-line-error-face`
+(inherits `error`); hover it to see the same message as `hinterlang-status`. In the error state, the tooltip additionally
 says "Click to switch to the backend log"; mouse-1 opens
-`*Hinterl backend errors*` via `hinterl-show-backend-log`. Healthy indicators have
+`*Hinterlang backend errors*` via `hinterlang-show-backend-log`. Healthy indicators have
 no custom mouse binding. A successful
 analysis replaces the decorations and restores the normal indicator. Navigation
 from cached analysis is disabled after edits until fresh analysis succeeds.
@@ -203,8 +203,8 @@ nested/fun/record types, variables and constraints, overload mapping, multiple
 clauses, quoted names, arity distinctions, nested head ranges, Unicode and tabs, unsaved changes, incomplete syntax, stale responses, fragmented protocol
 frames, multiple buffers, and process cleanup.
 
-The backend is `src/hinterl_backend.erl`; presentation is `emacs/hinterl.el`.
-Build output stays in `_build/`. `bin/hinterl` writes protocol responses only to
-stdout; Emacs captures backend stderr in `*Hinterl backend errors*`.
+The backend is `src/hinterlang_backend.erl`; presentation is `emacs/hinterlang.el`.
+Build output stays in `_build/`. `bin/hinterlang` writes protocol responses only to
+stdout; Emacs captures backend stderr in `*Hinterlang backend errors*`.
 
 GPL-3.0-or-later; see [LICENSE](LICENSE).

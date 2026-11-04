@@ -1,8 +1,8 @@
-# Hinterl protocol v1
+# Hinterlang protocol v1
 
 ## Transport and lifecycle
 
-Launch `bin/hinterl` after `make`. Keep the process alive across analyses. It reads
+Launch `bin/hinterlang` after `make`. Keep the process alive across analyses. It reads
 one UTF-8 JSON object per line from stdin and writes one JSON object per line to
 stdout, with no banners. Source newlines are JSON escapes, not frame boundaries.
 EOF shuts down the process. Clients must buffer partial lines and handle multiple
@@ -187,7 +187,7 @@ applying a display replacement.
 Each spec includes `range`, from the leading `-` through the terminating period,
 with an exclusive end and no trailing newline. It covers all alternatives and
 constraints across multiple lines. Clients may use this for optional visual
-dimming. Emacs uses `hinterl-spec-face` when `hinterl-dim-specs` is enabled; this
+dimming. Emacs uses `hinterlang-spec-face` when `hinterlang-dim-specs` is enabled; this
 never alters the source or hides the spec.
 
 Complete `-define` forms are ignored as preprocessor token sequences rather than

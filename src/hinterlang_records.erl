@@ -1,6 +1,6 @@
 %% SPDX-License-Identifier: GPL-3.0-or-later
 %% Deliberately bounded record associations, not general type inference.
--module(hinterl_records).
+-module(hinterlang_records).
 -export([analyze/1]).
 
 analyze(Forms) ->

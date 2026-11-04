@@ -12,4 +12,4 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y emacs-nox
       - run: make test
       - name: Byte compile Emacs client
-        run: emacs -Q --batch -L emacs --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile emacs/hinterl.el
+        run: emacs -Q --batch -L emacs --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile emacs/hinterlang.el
